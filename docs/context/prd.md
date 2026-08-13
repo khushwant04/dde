@@ -1,6 +1,6 @@
 # Product Requirements Document (PRD)
 
-**Status: Planned.** This PRD defines the intended challenge submission; it does not describe implemented behavior.
+**Status: Native core implemented.** The CLI, supported loaders, strict extraction envelope, deterministic validation, batch/revalidation/evaluation commands, synthetic fixtures, and offline tests are current. Docker and hosted infrastructure requirements below are **Planned**. Code remains authoritative.
 
 ## Product statement
 
@@ -35,7 +35,7 @@ Business documents vary in layout and input quality. OCR or a language model can
 - Decimal/date business-rule validation.
 - Single-document, batch, validation-only, and evaluation commands.
 - Synthetic redistributable fixtures, ground truth, and committed example outputs.
-- Docker image for a reproducible CLI run after the native CLI is complete.
+- **Planned:** Docker image for reproducible CLI packaging after the native CLI core.
 
 ## Post-core hosting scope
 
@@ -48,7 +48,7 @@ Kubernetes is not a prerequisite for the extractor MVP or the scored three-minut
 
 ## Non-goals
 
-- Arbitrary document types, handwriting, and credit notes.
+- Arbitrary document types, handwriting, and full credit-note workflows. Exact equal-and-opposite line reversals on otherwise supported invoices are in scope.
 - Fine-tuning, RAG, embeddings, or a vector database.
 - Open-ended multi-agent orchestration.
 - Automatic correction of source values.
@@ -64,7 +64,7 @@ Kubernetes is not a prerequisite for the extractor MVP or the scored three-minut
 | `FR-002` | Reject unsupported, corrupt, encrypted, empty, or oversized input predictably. | Must |
 | `FR-003` | Extract document type, identifier, vendor, dates, currency, totals, and line items without fabricating missing values. | Must |
 | `FR-004` | Produce one versioned, schema-valid JSON envelope across all layouts. | Must |
-| `FR-005` | Validate line amounts, subtotal, total, dates, currency, and unsupported negative values using code. | Must |
+| `FR-005` | Validate line amounts, subtotal, total, dates, currency, exact balanced reversals, and unsupported unmatched negative values using code. | Must |
 | `FR-006` | Preserve extracted source values when a business rule fails and emit issue codes. | Must |
 | `FR-007` | Set validation status and `review_required` from deterministic issues. | Must |
 | `FR-008` | Process all supported files in a directory. | Must |
@@ -109,6 +109,15 @@ The brief contains resume-specific wording in the universal rubric. This project
 | 20 | Typed modules, provider boundary, domain errors, tests, linting, and type checking. |
 | 15 | Exact setup, environment variables, copy-paste demo, expected output, and troubleshooting. |
 | 10 | Explicit scope, model/dependency rationale, privacy/cost notes, known failures, and next improvements. |
+
+## Implemented limitations
+
+- Scanned PDFs and source images rely on model vision; no host OCR binary is installed.
+- Ambiguous locale dates remain `null`; only unambiguous dates normalize to strict ISO form.
+- The deterministic currency allowlist covers common challenge currencies, not every ISO 4217 code.
+- Full credit-note workflows and unmatched negative values remain unsupported; exact positive/negative line reversals are recognized as informational evidence.
+- The small synthetic fixture set demonstrates reproducibility and rule behavior, not general extraction accuracy.
+- Live requests may incur cost and send document content to the configured provider.
 
 ## Product risks
 

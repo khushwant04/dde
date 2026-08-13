@@ -1,6 +1,6 @@
 # DDE Context Documents
 
-**Status: Planned.** No DDE implementation exists yet. These documents describe intended requirements and decisions; once code exists, code is authoritative and these documents must be updated to match it.
+**Status: Native core implemented.** These documents describe the current CLI core, completed private live-provider spot checks, and separately label Docker, HTTP API, Kubernetes, and representative live benchmarking as **Planned**. Code is authoritative when any statement becomes stale.
 
 Each topic has one owner to avoid duplication:
 

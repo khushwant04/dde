@@ -1,6 +1,6 @@
 # Architecture Requirements and Decisions (ARD)
 
-**Status: Planned.** This document defines intended architecture. Implementation, when present, is authoritative.
+**Status: Native core implemented.** The component boundaries, processing flow, provider adapter, and deterministic validation describe current code. Docker, HTTP, and Kubernetes deployment views remain **Planned**. Implementation is authoritative.
 
 ## Architecture drivers
 

@@ -1,6 +1,6 @@
 # DDE Implementation Blueprint
 
-**Status: Planned.** No implementation exists yet. This document owns delivery sequence and time allocation only; requirements and design live in the [context document set](context/README.md).
+**Status: Native core implemented.** Stages 0-6 and 9 are represented by the current CLI, guarded loaders, provider adapters, validators, fixtures, evaluator, tests, runnable documentation, and authorized private Azure spot checks. Private live artifacts are intentionally excluded from the repository and do not constitute a representative accuracy benchmark. Stages 7-8 (Docker, hosted API, and Kubernetes) remain **Planned** and are intentionally outside the current scope. This document owns delivery sequence and time allocation only; requirements and design live in the [context document set](context/README.md).
 
 ## Context references
 
