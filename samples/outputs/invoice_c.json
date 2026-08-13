@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "source": {
+    "file_name": "invoice_c.txt",
+    "media_type": "text/plain; charset=utf-8",
+    "byte_count": 175,
+    "page_count": 1,
+    "sha256": "a1aff2f2e5209be3f7ce928bed8574a713409f1fd0dbae20a1fd2eb089d4e6d3"
+  },
+  "document": {
+    "document_type": "invoice",
+    "document_id": null,
+    "vendor": {
+      "name": "Delta Office Supply",
+      "tax_id": null,
+      "address": "Austin, TX"
+    },
+    "customer_name": null,
+    "issue_date": "2026-08-10",
+    "due_date": null,
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Paper cartons",
+        "quantity": "4",
+        "unit_price": "12.50",
+        "amount": "50.00"
+      }
+    ],
+    "subtotal": "50.00",
+    "discount": null,
+    "tax": null,
+    "shipping": null,
+    "total": "50.00"
+  },
+  "validation": {
+    "status": "warning",
+    "review_required": true,
+    "issues": [
+      {
+        "code": "MISSING_IDENTIFIER",
+        "severity": "warning",
+        "message": "Document identifier is absent",
+        "field": "document_id",
+        "expected": null,
+        "actual": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "document_type": "invoice",
+  "document_id": "INV-20491",
+  "vendor": {
+    "name": "ACME Technologies Pvt Ltd",
+    "tax_id": "GSTIN29ABCDE1234F1Z5",
+    "address": "Bengaluru, India"
+  },
+  "customer_name": "Rooman Labs",
+  "issue_date": "2026-08-12",
+  "due_date": "2026-08-26",
+  "currency": "INR",
+  "line_items": [
+    {
+      "description": "GPU Server",
+      "quantity": "2",
+      "unit_price": "150000.00",
+      "amount": "300000.00"
+    },
+    {
+      "description": "Support Plan",
+      "quantity": "1",
+      "unit_price": "20000.00",
+      "amount": "20000.00"
+    }
+  ],
+  "subtotal": "320000.00",
+  "discount": null,
+  "tax": "57600.00",
+  "shipping": null,
+  "total": "377600.00"
+}

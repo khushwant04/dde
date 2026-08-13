@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "source": {
+    "file_name": "receipt_b.pdf",
+    "media_type": "application/pdf",
+    "byte_count": 969,
+    "page_count": 1,
+    "sha256": "463cadeba410bd997a0dbdafbe0ccf1b854bfa0273cf6c03fd51078ce65bb1a8"
+  },
+  "document": {
+    "document_type": "receipt",
+    "document_id": "GM-7781",
+    "vendor": {
+      "name": "Green Mart",
+      "tax_id": "GSTIN27EXAMPLE1Z2",
+      "address": "Pune, India"
+    },
+    "customer_name": null,
+    "issue_date": "2026-08-12",
+    "due_date": null,
+    "currency": "INR",
+    "line_items": [
+      {
+        "description": "Organic rice",
+        "quantity": "2",
+        "unit_price": "210.00",
+        "amount": "420.00"
+      },
+      {
+        "description": "Cooking oil",
+        "quantity": "1",
+        "unit_price": "180.00",
+        "amount": "180.00"
+      }
+    ],
+    "subtotal": "600.00",
+    "discount": "20.00",
+    "tax": "29.00",
+    "shipping": null,
+    "total": "609.00"
+  },
+  "validation": {
+    "status": "pass",
+    "review_required": false,
+    "issues": []
+  }
+}

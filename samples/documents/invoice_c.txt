@@ -1,0 +1,8 @@
+INVOICE
+Vendor: Delta Office Supply
+Address: Austin, TX
+Date 2026/08/10
+Paper cartons, qty 4 @ USD 12.50 = USD 50.00
+Subtotal: 50.00
+Total: USD 50.00
+Identifier not provided.

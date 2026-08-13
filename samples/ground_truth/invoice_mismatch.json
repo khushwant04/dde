@@ -1,0 +1,26 @@
+{
+  "document_type": "invoice",
+  "document_id": "OC-404",
+  "vendor": {
+    "name": "Orbital Components",
+    "tax_id": null,
+    "address": null
+  },
+  "customer_name": "Demo Manufacturing",
+  "issue_date": "2026-08-13",
+  "due_date": null,
+  "currency": "USD",
+  "line_items": [
+    {
+      "description": "Sensor array",
+      "quantity": "2",
+      "unit_price": "125.00",
+      "amount": "250.00"
+    }
+  ],
+  "subtotal": "250.00",
+  "discount": null,
+  "tax": "25.00",
+  "shipping": null,
+  "total": "270.00"
+}

@@ -1,0 +1,26 @@
+{
+  "document_type": "invoice",
+  "document_id": "EP-140",
+  "vendor": {
+    "name": "Europa Parts",
+    "tax_id": "DE123456789",
+    "address": "Berlin, Germany"
+  },
+  "customer_name": "Example Robotics",
+  "issue_date": "2026-08-09",
+  "due_date": "2026-08-08",
+  "currency": "EUR",
+  "line_items": [
+    {
+      "description": "Precision bearing",
+      "quantity": "5",
+      "unit_price": "18.00",
+      "amount": "90.00"
+    }
+  ],
+  "subtotal": "90.00",
+  "discount": null,
+  "tax": null,
+  "shipping": "10.00",
+  "total": "100.00"
+}

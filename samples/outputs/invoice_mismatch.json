@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "source": {
+    "file_name": "invoice_mismatch.pdf",
+    "media_type": "application/pdf",
+    "byte_count": 959,
+    "page_count": 1,
+    "sha256": "70a1b1bbd3a24dc509b65a75dc678601ba0505d29ee0ef93afd1ccafe4840522"
+  },
+  "document": {
+    "document_type": "invoice",
+    "document_id": "OC-404",
+    "vendor": {
+      "name": "Orbital Components",
+      "tax_id": null,
+      "address": null
+    },
+    "customer_name": "Demo Manufacturing",
+    "issue_date": "2026-08-13",
+    "due_date": null,
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Sensor array",
+        "quantity": "2",
+        "unit_price": "125.00",
+        "amount": "250.00"
+      }
+    ],
+    "subtotal": "250.00",
+    "discount": null,
+    "tax": "25.00",
+    "shipping": null,
+    "total": "270.00"
+  },
+  "validation": {
+    "status": "fail",
+    "review_required": true,
+    "issues": [
+      {
+        "code": "TOTAL_MISMATCH",
+        "severity": "error",
+        "message": "Subtotal minus discount plus tax and shipping differs from total",
+        "field": "total",
+        "expected": "275.00",
+        "actual": "270.00"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "document_type": "invoice",
+  "document_id": "NS-882",
+  "vendor": {
+    "name": "Northstar Design",
+    "tax_id": null,
+    "address": null
+  },
+  "customer_name": null,
+  "issue_date": "2026-08-11",
+  "due_date": null,
+  "currency": "USD",
+  "line_items": [
+    {
+      "description": "Brand identity package",
+      "quantity": "1",
+      "unit_price": "900.00",
+      "amount": "900.00"
+    },
+    {
+      "description": "Print proofs",
+      "quantity": "3",
+      "unit_price": "25.00",
+      "amount": "75.00"
+    }
+  ],
+  "subtotal": "975.00",
+  "discount": "75.00",
+  "tax": null,
+  "shipping": null,
+  "total": "900.00"
+}
