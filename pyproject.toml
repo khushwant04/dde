@@ -1,0 +1,75 @@
+[project]
+name = "document-data-extractor"
+version = "0.1.0"
+description = "CLI-first document data extractor with strict structured output and deterministic validation"
+readme = "README.md"
+license = "MIT"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "azure-identity==1.25.3",
+    "openai==3.0.0",
+    "pillow==12.3.0",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.15.0",
+    "pymupdf==1.28.2",
+    "typer==0.27.1",
+]
+
+[project.scripts]
+dde = "dde.cli:app"
+
+[build-system]
+requires = ["hatchling==1.32.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dde"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers --strict-config"
+markers = [
+    "live: opt-in test that can call the configured provider and incur cost",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/generate_fixtures.py" = ["E501"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+plugins = ["pydantic.mypy"]
+packages = ["dde"]
+
+[tool.coverage.run]
+branch = true
+source = ["dde"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[dependency-groups]
+dev = [
+    "hatchling==1.32.0",
+    "mypy==2.3.0",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "ruff==0.16.2",
+]

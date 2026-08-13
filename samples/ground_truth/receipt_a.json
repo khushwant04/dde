@@ -1,0 +1,32 @@
+{
+  "document_type": "receipt",
+  "document_id": "R-3019",
+  "vendor": {
+    "name": "Corner Cafe",
+    "tax_id": null,
+    "address": "Seattle, WA"
+  },
+  "customer_name": null,
+  "issue_date": "2026-08-13",
+  "due_date": null,
+  "currency": "USD",
+  "line_items": [
+    {
+      "description": "Coffee",
+      "quantity": "2",
+      "unit_price": "3.50",
+      "amount": "7.00"
+    },
+    {
+      "description": "Bagel",
+      "quantity": "1",
+      "unit_price": "4.00",
+      "amount": "4.00"
+    }
+  ],
+  "subtotal": "11.00",
+  "discount": null,
+  "tax": "0.88",
+  "shipping": null,
+  "total": "11.88"
+}

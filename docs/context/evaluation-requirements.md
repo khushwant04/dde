@@ -1,6 +1,6 @@
 # Evaluation Requirements
 
-**Status: Planned.** No fixtures, tests, or measured results exist yet. Do not report planned metrics as achieved results.
+**Status: Offline evaluation implemented.** Eight synthetic fixtures (seven valid and one corrupt), separate ground truth/fake responses/result envelopes, deterministic metrics, and offline tests are included. Authorized private Azure spot checks have exercised three real invoices; their sources, outputs, and audits remain outside the repository. A representative live benchmark remains **Planned/opt-in**, and no general live-model accuracy result is claimed.
 
 ## Evaluation goals
 
@@ -44,12 +44,14 @@ Generate fixtures locally and avoid confidential, personal, or copyrighted busin
 ```text
 samples/
 |-- documents/
+|-- fake_responses/
 |-- ground_truth/
 |-- outputs/
+|-- manifest.json
 `-- evaluation-summary.json
 ```
 
-Every valid document has one ground-truth JSON file. Every reviewer demo document has one committed example output produced by the declared tested model. Ground truth and actual output must never be stored in the same file.
+Every valid document has one ground-truth JSON file and one repository example envelope produced by `FakeProvider`. These prove deterministic integration only. Live evaluation must use separately identified private outputs, never overwrite ground truth, and never place real source documents in `samples/` or package artifacts.
 
 ## Metrics
 
@@ -98,7 +100,7 @@ These tests run without an API key or network.
 
 ### Live fixture evaluation
 
-A live provider run generates actual outputs and the metrics summary. It is explicit and opt-in because it uses network, credentials, time, and potentially money. Record:
+A live provider run generates actual outputs and, for a representative authorized dataset, a separate metrics summary. It is explicit and opt-in because it uses network, credentials, time, and potentially money. Private spot checks are diagnostic evidence, not a replacement for the synthetic reproducibility suite or a general accuracy benchmark. Record:
 
 - UTC timestamp;
 - provider and exact model ID;
@@ -124,13 +126,19 @@ Deployment-specific checks are owned by [Deployment Requirements](deployment-req
 The final repository must expose documented equivalents of:
 
 ```bash
-pytest
-python -m dde evaluate samples
-python -m dde extract samples/documents/invoice_a.pdf
-python -m dde extract samples/documents/invoice_mismatch.pdf --strict
+uv sync --frozen --all-groups
+uv lock --check
+uv run pytest --cov=dde --cov-branch --cov-report=term-missing
+uv run ruff format --check src tests scripts
+uv run ruff check src tests scripts
+uv run mypy src/dde
+uv run dde evaluate samples
+uv run dde extract samples/documents/invoice_a.pdf --provider fake
+uv run dde extract samples/documents/invoice_mismatch.pdf --provider fake --strict
+uv build
 ```
 
-Add lint, format, and type-check commands after tools are selected and pinned. The README must not list a command that has not been executed successfully in the final environment.
+The root README must not list a command that has not been executed successfully in the final environment. `--provider fake` commands are offline integration checks and must not be presented as model accuracy.
 
 ## Core completion gate
 
@@ -162,5 +170,6 @@ Core behavior is complete only when:
 - Report fixture-set performance, not general document accuracy.
 - Preserve failures in the summary; do not remove difficult fixtures to improve scores.
 - Separate deterministic offline test results from nondeterministic live-model results.
+- Keep real documents, live outputs, and private audits outside public repositories and release packages.
 - If a check cannot run, state why and identify the next-best verification.
 - Never claim Kubernetes production readiness from manifest validation alone.

@@ -1,15 +1,15 @@
 # Technical Requirements
 
-**Status: Planned.** These are intended executable contracts. They must be reconciled with implementation as code is added.
+**Status: Implemented for the native core.** Models, configuration, loaders, provider adapters, validation, pipeline, CLI, and evaluator describe current code. The hosted API section is **Planned** and has no implementation.
 
 ## Runtime and dependencies
 
-- Python 3.11 or newer.
+- Python 3.12.
 - `pydantic` for strict models and JSON schema.
 - `typer` for CLI commands.
 - `pymupdf` for native PDF text and page rendering.
 - `pillow` for image loading and normalization.
-- `openai>=2` for the Responses API, configured with a runtime base URL.
+- `openai==3.0.0` for the Responses API, configured with a runtime base URL.
 - An OpenAI Responses-compatible endpoint; the default target is an Azure AI Foundry deployment exposing `gpt-5.6-sol`.
 - `azure-identity` when Microsoft Entra ID or managed identity authentication is enabled.
 - `pytest` plus coverage tooling for tests.
@@ -17,17 +17,17 @@
 
 No agentic framework is required. Strands Agents can wrap an OpenAI-compatible Responses client, but DDE would not use its autonomous loop, server-side conversation state, built-in tools, memory, or multi-agent features. Do not add Strands Agents, LangChain, LangGraph, AutoGen, Semantic Kernel, or Azure AI Agent Service to the MVP. Plain Python orchestration owns the bounded state transitions; Pydantic is a schema library, not an agent framework. Use the OpenAI Python SDK Responses API directly with configurable base URL, model/deployment name, and authentication because multimodal strict extraction is the only model operation DDE needs.
 
-Resolve and pin exact versions after the initial Azure smoke test. Record the SDK/API path, Azure region, exact model, and deployment name used for evaluation in the root README; the deployment name remains configuration, not domain behavior.
+Runtime and development versions are pinned in `pyproject.toml` and `uv.lock`. The deployment name remains configuration, not domain behavior. Live Azure smoke checks have covered Azure identity authentication, PDF image input, Responses structured output, nullable fields, and the final Pydantic schema; private inputs and results are not release artifacts.
 
-The Microsoft Foundry catalog identifies `gpt-5.6-sol` version `2026-07-09` as generally available with text/image input and Chat Completions/Responses support. Azure AI Document Intelligence is therefore not an MVP dependency: PyMuPDF renders PDF pages and the model reads those images directly. Before full implementation, still run one deployment smoke test covering authentication, image input, Responses structured output, nullable fields, and the final Pydantic schema.
+The Microsoft Foundry catalog identifies `gpt-5.6-sol` version `2026-07-09` as generally available with text/image input and Chat Completions/Responses support. Azure AI Document Intelligence is therefore not a native-core dependency: PyMuPDF renders PDF pages and the model reads those images directly.
 
 ## Source layout
 
 ```text
 src/dde/
 |-- cli.py
-|-- api.py                 # post-core hosted adapter
 |-- config.py
+|-- evaluator.py
 |-- pipeline.py
 |-- models.py
 |-- errors.py
@@ -41,13 +41,14 @@ src/dde/
 |   |-- openai_responses.py
 |   `-- fake.py
 `-- validation/
-    |-- rules.py
-    `-- issues.py
+    `-- rules.py
 ```
 
-Transport modules call the same application service. Domain modules must not depend on Typer, FastAPI, Kubernetes, or provider SDK response types.
+A future hosted adapter may add `api.py`; it is **Planned** and not present.
 
 ## Input contract
+
+Transport modules call the same application service. Domain modules must not depend on Typer, FastAPI, Kubernetes, or provider SDK response types.
 
 Supported extensions and media types:
 
@@ -87,6 +88,7 @@ The model receives only the canonical content and schema/prompt instructions. It
 5. Normalize unambiguous dates to ISO format.
 6. Preserve line-item order.
 7. Return structured data matching `ExtractedDocument` only.
+8. Represent gross charges, credits, and discounts exactly once: if line amounts and subtotal are already net after credits, return the net subtotal with `discount: null`; otherwise return a gross subtotal and its separately applied invoice-level discount.
 
 One extraction call is permitted. One additional repair call is permitted only if JSON/schema parsing fails. The repair input contains schema errors and the original canonical content. Rule-validation failures never trigger repair.
 
@@ -100,6 +102,7 @@ Money and quantity values are JSON strings matching a decimal pattern and become
   "source": {
     "file_name": "invoice.pdf",
     "media_type": "application/pdf",
+    "byte_count": 12345,
     "page_count": 1,
     "sha256": "hex-digest"
   },
@@ -162,12 +165,13 @@ Use currency-aware decimal tolerance, defaulting to `0.01` for initial fixtures.
 | `UNKNOWN_CURRENCY` | warning | Currency cannot be normalized safely. |
 | `MISSING_IDENTIFIER` | warning | Invoice or receipt identifier is absent. |
 | `NO_LINE_ITEMS` | warning | No line items were extracted. |
-| `NEGATIVE_VALUE` | error | A negative quantity or amount appears; credit notes are unsupported. |
+| `NEGATIVE_VALUE` | error | A negative header value or unmatched negative line value appears; full credit-note semantics are unsupported. |
+| `BALANCED_REVERSAL` | info | A negative line exactly reverses one positive line after normalized description and absolute quantity, unit price, and amount matching. |
 | `DUPLICATE_LINE` | warning | Identical adjacent lines suggest repeated headers or extraction duplication. |
 
-Status is `pass` with no issues, `warning` with warnings only, and `fail` with any error. Any error requires review. Warning-specific review behavior must be deterministic and tested.
+Status is `fail` with any error, `warning` with warnings and no errors, and otherwise `pass`. Errors and warnings require review. Informational issues remain visible evidence but do not change `pass` or require review.
 
-Optional adjustments are treated as zero only when no corresponding label appears in the document. If content suggests an unrepresented adjustment, report ambiguity rather than asserting a valid total.
+Optional null adjustments are treated as zero in the implemented total formula. Because rule validation does not retain raw source labels, it does not independently flag a visible-but-unrepresented adjustment; provider extraction must preserve visible adjustments, and this remains a documented limitation.
 
 ## CLI contract
 
@@ -210,17 +214,31 @@ Initial API behavior is synchronous. Map invalid input to 4xx, provider failure 
 
 | Variable | Purpose | Secret |
 |---|---|---|
-| `OPENAI_BASE_URL` | OpenAI Responses-compatible base URL; defaults to the standard OpenAI endpoint when omitted. | No |
-| `DDE_MODEL` | Model ID or Azure deployment name; defaults to the configured `gpt-5.6-sol` deployment for this project. | No |
+| `OPENAI_BASE_URL` | Required OpenAI Responses-compatible base URL. | No |
+| `DDE_MODEL` | Required model ID or Azure deployment name. | No |
 | `OPENAI_API_KEY` | API-key credential for the configured endpoint. | Yes |
 | `DDE_AUTH_MODE` | `api_key` or `azure_identity`; default `api_key`. | No |
-| `DDE_MAX_FILE_BYTES` | Upload/file byte limit. | No |
-| `DDE_MAX_PAGES` | PDF page limit. | No |
-| `DDE_RENDER_DPI` | PDF rendering resolution. | No |
-| `DDE_LOG_LEVEL` | Application log level. | No |
-| `PORT` | Hosted API port, default 8080. | No |
+| `DDE_MAX_FILE_BYTES` | Input byte limit; default 15 MiB. | No |
+| `DDE_MAX_PAGES` | PDF page limit; default 10. | No |
+| `DDE_MAX_IMAGE_PIXELS` | Source/rendered image limit; default 25 million pixels. | No |
+| `DDE_RENDER_DPI` | PDF rendering resolution; default 144 DPI. | No |
+| `DDE_REQUEST_TIMEOUT_SECONDS` | Provider timeout; default 120 seconds. | No |
+| `DDE_LOG_LEVEL` | Application log level; default `INFO`. | No |
+| `PORT` | **Planned hosted API only:** port, default 8080. | No |
 
-Authentication must support an API key for local challenge execution. When `DDE_AUTH_MODE=azure_identity`, create an Azure bearer-token provider with `DefaultAzureCredential`; Azure-hosted workloads should prefer Workload Identity rather than storing a key in Kubernetes.
+### Local provider setup
+
+Copy `.env.example` to `.env`, set `OPENAI_BASE_URL` and `DDE_MODEL`, then provide either `OPENAI_API_KEY` for `api_key` mode or an Azure CLI/managed identity credential for `azure_identity` mode. The selected provider receives document text and rendered images, so review its retention, region, and privacy terms before processing sensitive data.
+
+```bash
+uv sync --frozen
+uv run dde doctor
+uv run dde extract samples/documents/invoice_a.pdf --output result.json
+uv run dde batch samples/documents --output-dir results
+uv run dde validate result.json --strict
+```
+
+Authentication supports an API key for local challenge execution. When `DDE_AUTH_MODE=azure_identity`, DDE creates an Azure bearer-token provider with `DefaultAzureCredential` and the Cognitive Services scope; local development can use Azure CLI credentials, while Azure-hosted workloads should prefer Workload Identity rather than storing a key in Kubernetes. `dde doctor` reports only non-secret settings and readiness booleans.
 
 Configuration must fail fast with a clear message when extraction requires a missing base URL, model/deployment name, or credential. Switching endpoints requires OpenAI Responses API compatibility, image input, and strict structured-output support. Validation-only and offline tests must not require provider credentials.
 
@@ -233,6 +251,7 @@ Configuration must fail fast with a clear message when extraction requires a mis
 - Avoid logging full document text, model payloads, and extracted personal data by default.
 - Redact secret values from errors.
 - Document that configured provider execution sends document content to that provider.
+- Publish only synthetic redistributable fixtures; keep real documents, live outputs, and source-grounded audits outside the repository and release artifacts.
 - Do not make outbound requests during offline validation or unit tests.
 
 ## Error behavior

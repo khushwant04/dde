@@ -1,0 +1,26 @@
+{
+  "document_type": "invoice",
+  "document_id": null,
+  "vendor": {
+    "name": "Delta Office Supply",
+    "tax_id": null,
+    "address": "Austin, TX"
+  },
+  "customer_name": null,
+  "issue_date": "2026-08-10",
+  "due_date": null,
+  "currency": "USD",
+  "line_items": [
+    {
+      "description": "Paper cartons",
+      "quantity": "4",
+      "unit_price": "12.50",
+      "amount": "50.00"
+    }
+  ],
+  "subtotal": "50.00",
+  "discount": null,
+  "tax": null,
+  "shipping": null,
+  "total": "50.00"
+}
