@@ -1,5 +1,7 @@
 # Document Data Extractor
 
+[![CI](https://github.com/khushwant04/dde/actions/workflows/ci.yml/badge.svg)](https://github.com/khushwant04/dde/actions/workflows/ci.yml)
+
 DDE is a framework-free Python 3.12 CLI that extracts strict invoice/receipt JSON from PDF, PNG, JPEG, and UTF-8 text through an OpenAI Responses-compatible provider, then validates dates and arithmetic deterministically.
 
 ## Quick start
