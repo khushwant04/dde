@@ -1,19 +1,22 @@
 {
-  "fixture_set_version": "1.0",
+  "fixture_set_version": "5.0",
   "fixtures": {
     "invoice_a": {
       "format": "pdf",
       "layout": "traditional-table",
+      "document_type": "invoice",
       "expected_issue_codes": []
     },
     "invoice_b": {
       "format": "image",
       "layout": "modern-two-column",
+      "document_type": "invoice",
       "expected_issue_codes": []
     },
     "invoice_c": {
       "format": "text",
       "layout": "compact-text",
+      "document_type": "invoice",
       "expected_issue_codes": [
         "MISSING_IDENTIFIER"
       ]
@@ -21,26 +24,55 @@
     "invoice_d": {
       "format": "pdf",
       "layout": "scanned-table",
+      "document_type": "invoice",
       "expected_issue_codes": [
-        "DUE_BEFORE_ISSUE"
+        "DUE_BEFORE_ISSUE",
+        "NO_NATIVE_TEXT"
       ]
     },
     "receipt_a": {
       "format": "image",
       "layout": "narrow-thermal",
+      "document_type": "receipt",
       "expected_issue_codes": []
     },
     "receipt_b": {
       "format": "pdf",
       "layout": "wide-retail",
+      "document_type": "receipt",
       "expected_issue_codes": []
     },
     "invoice_mismatch": {
       "format": "pdf",
       "layout": "table-mismatch",
+      "document_type": "invoice",
       "expected_issue_codes": [
         "TOTAL_MISMATCH"
       ]
+    },
+    "purchase_order_a": {
+      "format": "text",
+      "layout": "purchase-order-table",
+      "document_type": "purchase_order",
+      "expected_issue_codes": []
+    },
+    "credit_note_a": {
+      "format": "text",
+      "layout": "credit-note-compact",
+      "document_type": "credit_note",
+      "expected_issue_codes": []
+    },
+    "credit_note_b": {
+      "format": "csv",
+      "layout": "credit-note-records",
+      "document_type": "credit_note",
+      "expected_issue_codes": []
+    },
+    "purchase_order_b": {
+      "format": "xlsx",
+      "layout": "multi-sheet-purchase-order",
+      "document_type": "purchase_order",
+      "expected_issue_codes": []
     },
     "bad_input": {
       "format": "bad",

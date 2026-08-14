@@ -18,5 +18,5 @@ def test_live_azure_sample_returns_schema_valid_envelope() -> None:
     provider = OpenAIResponsesProvider(settings)
     sample = Path(__file__).resolve().parents[1] / "samples/documents/invoice_a.pdf"
     result = ExtractionPipeline(settings, provider).run(sample)
-    assert result.schema_version == "1.0"
+    assert result.schema_version == "2.0"
     assert result.source.file_name == "invoice_a.pdf"

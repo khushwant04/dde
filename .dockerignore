@@ -1,0 +1,9 @@
+# Deny by default: only files explicitly required for a locked package build enter the context.
+*
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!README.md
+!LICENSE
+!src/
+!src/**

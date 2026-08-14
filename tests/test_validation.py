@@ -8,6 +8,8 @@ from dde.models import (
     ExtractedDocument,
     IssueCode,
     LineItem,
+    LoaderNotice,
+    LoaderNoticeCode,
     Severity,
     ValidationStatus,
     Vendor,
@@ -21,10 +23,12 @@ def make_document(**updates: object) -> ExtractedDocument:
     values: dict[str, object] = {
         "document_type": "invoice",
         "document_id": "INV-1",
+        "reference_document_id": None,
         "vendor": Vendor(name="Vendor", tax_id=None, address=None),
         "customer_name": None,
         "issue_date": "2024-02-29",
         "due_date": "2024-03-30",
+        "delivery_date": None,
         "currency": "USD",
         "line_items": [
             LineItem(description="Item", quantity=D("2"), unit_price=D("5"), amount=D("10"))
@@ -40,7 +44,11 @@ def make_document(**updates: object) -> ExtractedDocument:
 
 
 def codes(document: ExtractedDocument) -> list[IssueCode]:
-    return [issue.code for issue in validate_document(document).issues]
+    return [
+        issue.code
+        for issue in validate_document(document).issues
+        if isinstance(issue.code, IssueCode)
+    ]
 
 
 def test_clean_document_passes() -> None:
@@ -84,6 +92,21 @@ def test_due_before_issue() -> None:
     assert IssueCode.DUE_BEFORE_ISSUE in codes(
         make_document(issue_date="2026-08-13", due_date="2026-08-12")
     )
+
+
+def test_purchase_order_delivery_before_issue_requires_review() -> None:
+    result = validate_document(
+        make_document(
+            document_type="purchase_order",
+            document_id="PO-1",
+            issue_date="2026-08-13",
+            due_date=None,
+            delivery_date="2026-08-12",
+        )
+    )
+    assert [issue.code for issue in result.issues] == [IssueCode.DELIVERY_BEFORE_ISSUE]
+    assert result.status == ValidationStatus.WARNING
+    assert result.review_required is True
 
 
 @pytest.mark.parametrize("currency", [None, "XYZ", "usd"])
@@ -174,3 +197,113 @@ def test_incomplete_decimal_inputs_do_not_invent_checks() -> None:
     assert IssueCode.LINE_AMOUNT_MISMATCH not in found
     assert IssueCode.SUBTOTAL_MISMATCH not in found
     assert IssueCode.TOTAL_MISMATCH not in found
+
+
+def test_credit_note_positive_magnitude_profile_passes() -> None:
+    result = validate_document(
+        make_document(
+            document_type="credit_note",
+            document_id="CN-1",
+            reference_document_id="INV-1",
+            due_date=None,
+        )
+    )
+    assert result.issues == []
+    assert result.status == ValidationStatus.PASS
+
+
+def test_credit_note_negative_signed_profile_and_discount_pass() -> None:
+    line = LineItem(
+        description="Service credit", quantity=D("1"), unit_price=D("-100"), amount=D("-100")
+    )
+    result = validate_document(
+        make_document(
+            document_type="credit_note",
+            document_id="CN-2",
+            reference_document_id="INV-2",
+            due_date=None,
+            line_items=[line],
+            subtotal=D("-100"),
+            discount=D("-10"),
+            tax=D("-8"),
+            total=D("-98"),
+        )
+    )
+    assert IssueCode.NEGATIVE_VALUE not in [issue.code for issue in result.issues]
+    assert result.issues == []
+    assert result.status == ValidationStatus.PASS
+
+
+@pytest.mark.parametrize(
+    ("updates", "contradictory_field"),
+    [
+        ({"total": D("-11")}, "total"),
+        ({"tax": D("-1"), "total": D("9")}, "tax"),
+        ({"discount": D("-1"), "total": D("12")}, "discount"),
+    ],
+)
+def test_credit_note_mixed_or_contradictory_signs_fail_without_total_mismatch(
+    updates: dict[str, object], contradictory_field: str
+) -> None:
+    document = make_document(
+        document_type="credit_note",
+        document_id="CN-3",
+        reference_document_id="INV-3",
+        due_date=None,
+        **updates,
+    )
+    result = validate_document(document)
+    found = [issue.code for issue in result.issues]
+    assert found == [IssueCode.CREDIT_SIGN_INCONSISTENCY]
+    assert contradictory_field in (result.issues[0].actual or "")
+    assert IssueCode.SUBTOTAL_MISMATCH not in found
+    assert IssueCode.TOTAL_MISMATCH not in found
+    assert result.status == ValidationStatus.FAIL
+
+
+def test_credit_note_coherent_profile_still_reports_total_mismatch() -> None:
+    result = validate_document(
+        make_document(
+            document_type="credit_note",
+            document_id="CN-4",
+            reference_document_id="INV-4",
+            due_date=None,
+            total=D("12"),
+        )
+    )
+    assert [issue.code for issue in result.issues] == [IssueCode.TOTAL_MISMATCH]
+
+
+def test_credit_note_missing_reference_requires_review() -> None:
+    result = validate_document(
+        make_document(document_type="credit_note", document_id="CN-5", due_date=None)
+    )
+    assert [issue.code for issue in result.issues] == [IssueCode.MISSING_REFERENCE]
+    assert result.status == ValidationStatus.WARNING
+
+
+def test_credit_note_incomplete_values_are_explicitly_unverifiable() -> None:
+    result = validate_document(
+        make_document(
+            document_type="credit_note",
+            document_id="CN-6",
+            reference_document_id="INV-6",
+            due_date=None,
+            total=None,
+        )
+    )
+    assert [issue.code for issue in result.issues] == [IssueCode.CREDIT_TOTAL_UNVERIFIABLE]
+    assert result.status == ValidationStatus.WARNING
+
+
+def test_informational_loader_notice_is_visible_and_non_blocking() -> None:
+    notice = LoaderNotice(
+        code=LoaderNoticeCode.NO_NATIVE_TEXT,
+        severity=Severity.INFO,
+        message="No native PDF text found; extraction uses rendered pages",
+        field=None,
+    )
+    result = validate_document(make_document(), loader_notices=(notice,))
+    assert [issue.code for issue in result.issues] == [LoaderNoticeCode.NO_NATIVE_TEXT]
+    assert result.status == ValidationStatus.PASS
+    assert result.review_required is False

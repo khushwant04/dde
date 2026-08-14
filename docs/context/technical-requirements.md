@@ -1,6 +1,6 @@
 # Technical Requirements
 
-**Status: Implemented for the native core.** Models, configuration, loaders, provider adapters, validation, pipeline, CLI, and evaluator describe current code. The hosted API section is **Planned** and has no implementation.
+**Status: Native core, hosted API, and secure Docker image implemented.** Models, configuration, loaders, provider adapters, validation, pipeline, CLI, evaluator, bounded synchronous FastAPI adapter, and fixed-non-root image describe current code. Minimal Kubernetes packaging is implemented; cluster production readiness remains unverified.
 
 ## Runtime and dependencies
 
@@ -9,11 +9,15 @@
 - `typer` for CLI commands.
 - `pymupdf` for native PDF text and page rendering.
 - `pillow` for image loading and normalization.
+- `openpyxl==3.1.5` for read-only `.xlsx` workbook parsing.
+- `defusedxml==0.7.1` because openpyxl's official security guidance recommends it against XML expansion attacks.
 - `openai==3.0.0` for the Responses API, configured with a runtime base URL.
 - An OpenAI Responses-compatible endpoint; the default target is an Azure AI Foundry deployment exposing `gpt-5.6-sol`.
 - `azure-identity` when Microsoft Entra ID or managed identity authentication is enabled.
 - `pytest` plus coverage tooling for tests.
-- `fastapi` and an ASGI server only when the hosted adapter is implemented.
+- `fastapi==0.141.1` and `python-multipart==0.0.32` for the hosted multipart adapter.
+- `uvicorn==0.52.3` as the hosted ASGI server.
+- `httpx==0.28.1` in the development group for offline API tests.
 
 No agentic framework is required. Strands Agents can wrap an OpenAI-compatible Responses client, but DDE would not use its autonomous loop, server-side conversation state, built-in tools, memory, or multi-agent features. Do not add Strands Agents, LangChain, LangGraph, AutoGen, Semantic Kernel, or Azure AI Agent Service to the MVP. Plain Python orchestration owns the bounded state transitions; Pydantic is a schema library, not an agent framework. Use the OpenAI Python SDK Responses API directly with configurable base URL, model/deployment name, and authentication because multimodal strict extraction is the only model operation DDE needs.
 
@@ -25,9 +29,11 @@ The Microsoft Foundry catalog identifies `gpt-5.6-sol` version `2026-07-09` as g
 
 ```text
 src/dde/
+|-- api.py
 |-- cli.py
 |-- config.py
 |-- evaluator.py
+|-- formats.py
 |-- pipeline.py
 |-- models.py
 |-- errors.py
@@ -35,6 +41,8 @@ src/dde/
 |   |-- base.py
 |   |-- pdf.py
 |   |-- image.py
+|   |-- csv.py
+|   |-- xlsx.py
 |   `-- text.py
 |-- providers/
 |   |-- base.py
@@ -44,13 +52,13 @@ src/dde/
     `-- rules.py
 ```
 
-A future hosted adapter may add `api.py`; it is **Planned** and not present.
+`api.py` is a transport-only FastAPI adapter around the same `ExtractionPipeline` used by the CLI; domain modules remain independent of FastAPI.
 
 ## Input contract
 
 Transport modules call the same application service. Domain modules must not depend on Typer, FastAPI, Kubernetes, or provider SDK response types.
 
-Supported extensions and media types:
+Supported extensions, signatures, labels, and media types are defined once in `dde.formats`; both single-file loader dispatch and CLI batch discovery consume that registry:
 
 | Extension | Media type | Loader behavior |
 |---|---|---|
@@ -58,8 +66,14 @@ Supported extensions and media types:
 | `.png` | `image/png` | Decode and normalize image metadata. |
 | `.jpg`, `.jpeg` | `image/jpeg` | Decode and normalize image metadata. |
 | `.txt` | `text/plain; charset=utf-8` | Decode strict UTF-8 text. |
+| `.csv` | `text/csv; charset=utf-8` | Parse bounded logical rows and emit deterministic JSON-array canonical text. |
+| `.xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | Preflight the ZIP package, parse visible sheets read-only, and label formulas/caches. |
 
-The input guard must verify content rather than trusting extension alone. Limits for bytes, pages, dimensions, and rendered resolution are configuration with conservative defaults and tests at each boundary.
+Legacy `.xls` and `.ods` are not supported.
+
+The input guard must verify content rather than trusting extension alone. Limits for bytes, pages, dimensions, rendered resolution, rows, columns, cells, and canonical tabular text are configuration with conservative defaults and tests at each boundary. CSV is strict UTF-8; its delimiter is heuristically selected from comma, semicolon, tab, or pipe. Detection failure uses comma and emits the warning-level `CSV_DIALECT_FALLBACK` notice. Quoted multiline cells and ragged rows are preserved as ordered JSON arrays; no formula or spreadsheet expression is executed.
+
+XLSX preflight bounds ZIP entry count and declared uncompressed bytes, rejects duplicate/unsafe/encrypted parts, verifies package checksums, and rejects active content or any external relationship before openpyxl parses the workbook. Only visible worksheets are canonicalized; skipped hidden sheets emit warning evidence. Formula text is retained but never executed. A separately loaded `data_only` view supplies available cached values, which are labeled as caches and may be stale; missing caches emit warning evidence. Python numeric/date conversion is best effort. Charts, comments, drawings, pivots, rich visual formatting, and exact workbook layout are not canonicalized.
 
 Reject unsupported, missing, corrupt, encrypted, empty, or oversized inputs before a model call whenever possible.
 
@@ -70,10 +84,10 @@ The loader boundary returns:
 - original safe filename;
 - detected media type;
 - SHA-256 digest;
-- byte and page counts;
-- native text when available;
+- byte count plus nullable page and sheet counts;
+- native or canonicalized text when available;
 - ordered rendered page images when required;
-- non-sensitive loader warnings.
+- typed, non-sensitive loader notices with deterministic severity.
 
 Temporary data is request-scoped. Loader objects must not include API credentials or provider SDK types.
 
@@ -98,17 +112,20 @@ Money and quantity values are JSON strings matching a decimal pattern and become
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "source": {
     "file_name": "invoice.pdf",
     "media_type": "application/pdf",
     "byte_count": 12345,
     "page_count": 1,
-    "sha256": "hex-digest"
+    "sheet_count": null,
+    "sha256": "hex-digest",
+    "notices": []
   },
   "document": {
     "document_type": "invoice",
     "document_id": "INV-20491",
+    "reference_document_id": null,
     "vendor": {
       "name": "ACME Technologies Pvt Ltd",
       "tax_id": null,
@@ -117,6 +134,7 @@ Money and quantity values are JSON strings matching a decimal pattern and become
     "customer_name": null,
     "issue_date": "2026-08-12",
     "due_date": null,
+    "delivery_date": null,
     "currency": "INR",
     "line_items": [
       {
@@ -142,10 +160,13 @@ Money and quantity values are JSON strings matching a decimal pattern and become
 
 Schema rules:
 
+- New extraction always emits schema `2.0`. The offline `validate` command alone may parse a structurally valid schema `1.0` result and migrate it to `2.0`; direct v2 parsing rejects v1 and unknown versions.
+- V1 migration accepts only the original v1 document shape, invoice/receipt types, and issue-code set; it preserves representable legacy document/source values, adds `reference_document_id: null`, `delivery_date: null`, `sheet_count: null`, and an empty notice list, then rebuilds trusted validation metadata. A non-positive legacy `page_count` is rejected explicitly because v2 requires every present page/sheet count to be positive; released loader-produced v1 envelopes always used positive page counts.
+- `page_count` and `sheet_count` are nullable but must be positive when present. Loader notices are application-owned evidence and are copied into validation issues so severity deterministically controls status and review.
 - Set `additionalProperties: false` on every object sent as an Azure strict-output schema.
 - Include every schema property in `required`; represent optional source values with nullable unions and return `null`, never empty strings or invented defaults.
 - Keep the provider schema within Azure structured-output limits and enforce unsupported constraints such as string patterns, numeric bounds, and array sizes in Pydantic/application code after parsing.
-- Restrict MVP `document_type` to `invoice` or `receipt`.
+- Restrict v2 `document_type` to `invoice`, `receipt`, `purchase_order`, or `credit_note`. `reference_document_id` and `delivery_date` remain required schema properties but are nullable when absent or inapplicable.
 - Accept ISO `YYYY-MM-DD` only after unambiguous normalization.
 - Use ISO 4217 currency codes only when safely determined.
 - Permit an empty line-item list for a schema-safe partial result, but emit a warning.
@@ -162,12 +183,31 @@ Use currency-aware decimal tolerance, defaulting to `0.01` for initial fixtures.
 | `TOTAL_MISMATCH` | error | `subtotal - discount + tax + shipping` differs from total. |
 | `INVALID_DATE` | error | A supplied date is not a real calendar date. |
 | `DUE_BEFORE_ISSUE` | warning | Due date precedes issue date. |
+| `DELIVERY_BEFORE_ISSUE` | warning | Delivery date precedes issue date. |
 | `UNKNOWN_CURRENCY` | warning | Currency cannot be normalized safely. |
-| `MISSING_IDENTIFIER` | warning | Invoice or receipt identifier is absent. |
+| `MISSING_IDENTIFIER` | warning | Document identifier is absent. |
+| `MISSING_REFERENCE` | warning | A credit note does not identify its referenced document. |
 | `NO_LINE_ITEMS` | warning | No line items were extracted. |
-| `NEGATIVE_VALUE` | error | A negative header value or unmatched negative line value appears; full credit-note semantics are unsupported. |
+| `NEGATIVE_VALUE` | error | A negative header value or unmatched negative line value appears on an invoice, receipt, or purchase order. |
 | `BALANCED_REVERSAL` | info | A negative line exactly reverses one positive line after normalized description and absolute quantity, unit price, and amount matching. |
 | `DUPLICATE_LINE` | warning | Identical adjacent lines suggest repeated headers or extraction duplication. |
+| `CREDIT_SIGN_INCONSISTENCY` | error | Non-zero credit-note monetary values do not form one supported sign profile; subtotal/total mismatch checks are skipped. |
+| `CREDIT_TOTAL_UNVERIFIABLE` | warning | Credit polarity cannot be established or required line/subtotal/total values are absent. |
+| `NO_NATIVE_TEXT` | info | A PDF has no native text; extraction uses the rendered pages. |
+| `CSV_DIALECT_FALLBACK` | warning | CSV delimiter detection failed and comma was used. |
+| `XLSX_HIDDEN_SHEET_SKIPPED` | warning | One or more hidden sheets were excluded from canonical text. |
+| `XLSX_FORMULA_PRESENT` | warning | Formula text is present but is not executed. |
+| `XLSX_FORMULA_CACHE_MISSING` | warning | A formula has no available cached value. |
+
+Credit-note sign decisions are deterministic and preserve every printed sign:
+
+| Profile | Non-zero line amounts, subtotal, total | Non-zero discount, tax, shipping | Arithmetic behavior |
+|---|---|---|---|
+| Positive magnitude | all positive | all positive | Apply the normal signed equation and comparison rules. |
+| Negative signed | all negative | all negative | Apply the same `subtotal - discount + tax + shipping` equation; a negative discount reduces credit magnitude. |
+| Mixed/ambiguous | mixed signs, contradictory adjustment signs, or no non-zero values | any contradiction or no established polarity | Emit `CREDIT_SIGN_INCONSISTENCY` or `CREDIT_TOTAL_UNVERIFIABLE`; do not emit a misleading total mismatch for an incoherent profile. |
+
+Zero values do not establish polarity, and exact balanced reversal pairs are neutral when selecting a profile. Missing line amounts, subtotal, or total make complete credit arithmetic unverifiable. For purchase orders, `due_date` remains an independently printed payment due date while `delivery_date` is the requested/promised delivery date; either is optional, and each supplied date is validated without inventing the other.
 
 Status is `fail` with any error, `warning` with warnings and no errors, and otherwise `pass`. Errors and warnings require review. Informational issues remain visible evidence but do not change `pass` or require review.
 
@@ -200,15 +240,17 @@ Exit codes:
 
 ## Hosted API contract
 
-The API is post-core and wraps the same extraction service:
+The implemented API wraps the same extraction service:
 
 | Method and path | Behavior |
 |---|---|
-| `GET /healthz` | Process is alive; no provider call. |
-| `GET /readyz` | Configuration and local dependencies are ready; avoid billable provider calls. |
-| `POST /v1/extractions` | Accept one bounded multipart file and return the result envelope. |
+| `GET /healthz` | Process is alive; never constructs or calls a provider. |
+| `GET /readyz` | Local service lifecycle and provider configuration are ready; never makes a provider request. |
+| `POST /v1/extractions` | Accept one bounded multipart `file` and return the result envelope. |
 
-Initial API behavior is synchronous. Map invalid input to 4xx, provider failure to 502/503 as appropriate, and internal/schema failure to a sanitized 5xx response. Never return credentials, provider payloads, local paths, or stack traces.
+The adapter buffers at most `DDE_MAX_REQUEST_BYTES` before multipart parsing, then copies at most `DDE_MAX_FILE_BYTES` into a sanitized request-scoped temporary workspace. It admits at most `DDE_MAX_CONCURRENT_REQUESTS` extraction workers and rejects excess work immediately with `429`; shutdown rejects new work with `503`. `DDE_API_TIMEOUT_SECONDS` bounds how long the client waits, returning `504` when exceeded. Python threads and provider calls cannot be forcibly cancelled safely, so timed-out work retains its concurrency slot and temporary workspace until the worker finishes; worker-owned cleanup is guaranteed afterward. Provider SDK calls separately use `DDE_REQUEST_TIMEOUT_SECONDS`.
+
+Input limits map to `413`, unsupported media to `415`, invalid input to `400`, provider configuration to `503`, provider/schema failures to sanitized `502`, and unexpected failures to sanitized `500`. Responses never include credentials, provider payloads, local paths, or stack traces. The initial API is synchronous, stateless, and deliberately has no authentication or durable queue; it must not be exposed directly to the internet without TLS termination, authentication, and edge rate limiting.
 
 ## Configuration
 
@@ -221,10 +263,20 @@ Initial API behavior is synchronous. Map invalid input to 4xx, provider failure 
 | `DDE_MAX_FILE_BYTES` | Input byte limit; default 15 MiB. | No |
 | `DDE_MAX_PAGES` | PDF page limit; default 10. | No |
 | `DDE_MAX_IMAGE_PIXELS` | Source/rendered image limit; default 25 million pixels. | No |
+| `DDE_MAX_TABULAR_ROWS` | Maximum total rows accepted from one CSV/workbook; default 10,000. | No |
+| `DDE_MAX_TABULAR_COLUMNS` | Maximum columns in any row/sheet; default 100. | No |
+| `DDE_MAX_CELL_CHARS` | Maximum canonical characters in one cell; default 4,096. | No |
+| `DDE_MAX_TABULAR_CHARS` | Maximum canonical tabular text characters; default 200,000. | No |
+| `DDE_MAX_SHEETS` | Maximum workbook sheets; default 20. | No |
+| `DDE_MAX_XLSX_ZIP_ENTRIES` | Maximum XLSX archive entries; default 1,000. | No |
+| `DDE_MAX_XLSX_UNCOMPRESSED_BYTES` | Maximum declared XLSX uncompressed bytes; default 50 MiB. | No |
 | `DDE_RENDER_DPI` | PDF rendering resolution; default 144 DPI. | No |
-| `DDE_REQUEST_TIMEOUT_SECONDS` | Provider timeout; default 120 seconds. | No |
+| `DDE_REQUEST_TIMEOUT_SECONDS` | Provider SDK timeout; default 120 seconds. | No |
+| `DDE_MAX_REQUEST_BYTES` | Maximum complete HTTP request body before multipart parsing; default 16 MiB. | No |
+| `DDE_MAX_CONCURRENT_REQUESTS` | Maximum active extraction workers per process; default 2. | No |
+| `DDE_API_TIMEOUT_SECONDS` | Maximum synchronous client wait for extraction; default 130 seconds. | No |
 | `DDE_LOG_LEVEL` | Application log level; default `INFO`. | No |
-| `PORT` | **Planned hosted API only:** port, default 8080. | No |
+| `PORT` | ASGI listener port supplied to Uvicorn; deployment default 8080. | No |
 
 ### Local provider setup
 

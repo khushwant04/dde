@@ -11,7 +11,14 @@ from pydantic import ValidationError
 from dde.config import Settings
 from dde.errors import ProviderRequestError, SchemaOutputError
 from dde.loaders import LoadedDocument
-from dde.models import ExtractedDocument, LineItem, Vendor
+from dde.models import (
+    ExtractedDocument,
+    LineItem,
+    LoaderNotice,
+    LoaderNoticeCode,
+    Severity,
+    Vendor,
+)
 from dde.pipeline import ExtractionPipeline
 from dde.providers.fake import FakeProvider
 from dde.providers.openai_responses import OpenAIResponsesProvider
@@ -21,10 +28,12 @@ def extracted(total: Decimal = Decimal("10")) -> ExtractedDocument:
     return ExtractedDocument(
         document_type="invoice",
         document_id="I-1",
+        reference_document_id=None,
         vendor=Vendor(name="V", tax_id=None, address=None),
         customer_name=None,
         issue_date="2026-08-13",
         due_date=None,
+        delivery_date=None,
         currency="USD",
         line_items=[
             LineItem(
@@ -89,8 +98,18 @@ def test_openai_request_is_strict_multimodal_and_single_call() -> None:
     assert request["store"] is False
     assert "Apply each discount or credit exactly once" in request["instructions"]
     assert "set discount to null" in request["instructions"]
+    assert "reference_document_id" in request["instructions"]
+    assert "delivery_date" in request["instructions"]
+    assert "do not negate positive credit magnitudes" in request["instructions"]
     schema = ExtractedDocument.model_json_schema()
     properties = schema["properties"]
+    assert set(properties["document_type"]["enum"]) == {
+        "invoice",
+        "receipt",
+        "purchase_order",
+        "credit_note",
+    }
+    assert {"reference_document_id", "delivery_date"} <= set(schema["required"])
     assert "already net after credits" in properties["subtotal"]["description"]
     assert "subtracted exactly once" in properties["discount"]["description"]
     content = request["input"][0]["content"]
@@ -184,6 +203,8 @@ def test_azure_identity_uses_cognitive_services_scope(monkeypatch: pytest.Monkey
     assert captured["credential"] is credential
     assert captured["scope"] == "https://cognitiveservices.azure.com/.default"
     assert captured["api_key"] is token_provider
+    assert captured["timeout"] == 120.0
+    assert captured["max_retries"] == 2
 
 
 def test_pipeline_builds_trusted_metadata_and_validation(tmp_path: Path) -> None:
@@ -191,8 +212,12 @@ def test_pipeline_builds_trusted_metadata_and_validation(tmp_path: Path) -> None
     path.write_text("invoice", encoding="utf-8")
     provider = FakeProvider({"input.txt": extracted(total=Decimal("9"))})
     result = ExtractionPipeline(Settings(_env_file=None), provider).run(path)
+    assert result.schema_version == "2.0"
     assert result.source.file_name == "input.txt"
     assert result.source.sha256 != "a" * 64
+    assert result.source.page_count == 1
+    assert result.source.sheet_count is None
+    assert result.source.notices == []
     assert result.validation.status.value == "fail"
     assert result.document.total == Decimal("9")
     assert provider.calls == 1
@@ -203,3 +228,30 @@ def test_provider_configuration_error_does_not_expose_secret() -> None:
     with pytest.raises(Exception) as caught:
         OpenAIResponsesProvider(settings)
     assert "private" not in str(caught.value)
+
+
+def test_pipeline_merges_loader_notice_into_trusted_review_metadata() -> None:
+    notice = LoaderNotice(
+        code=LoaderNoticeCode.CSV_DIALECT_FALLBACK,
+        severity=Severity.WARNING,
+        message="CSV dialect could not be detected; comma delimiter was used",
+        field=None,
+    )
+    document = LoadedDocument(
+        file_name="input.csv",
+        media_type="text/csv; charset=utf-8",
+        sha256="b" * 64,
+        byte_count=12,
+        page_count=None,
+        sheet_count=None,
+        text="item,amount\nA,10",
+        images=(),
+        notices=(notice,),
+    )
+    provider = FakeProvider({"input.csv": extracted()})
+    result = ExtractionPipeline(Settings(_env_file=None), provider).run_loaded(document)
+    assert result.source.notices == [notice]
+    assert result.validation.issues[-1].code == LoaderNoticeCode.CSV_DIALECT_FALLBACK
+    assert result.validation.status.value == "warning"
+    assert result.validation.review_required is True
+    assert result.document == extracted()

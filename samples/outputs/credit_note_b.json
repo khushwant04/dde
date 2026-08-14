@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "source": {
+    "file_name": "credit_note_b.csv",
+    "media_type": "text/csv; charset=utf-8",
+    "byte_count": 392,
+    "page_count": null,
+    "sheet_count": 1,
+    "sha256": "36498b6096fabd0ec5e32b01f3af0e91a798f8da75b8241e939b4498d1a51eaf",
+    "notices": []
+  },
+  "document": {
+    "document_type": "credit_note",
+    "document_id": "CN-205",
+    "reference_document_id": "INV-901",
+    "vendor": {
+      "name": "Beacon Services",
+      "tax_id": null,
+      "address": null
+    },
+    "customer_name": "Rooman Labs",
+    "issue_date": "2026-08-16",
+    "due_date": null,
+    "delivery_date": null,
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Service adjustment",
+        "quantity": "1",
+        "unit_price": "-100.00",
+        "amount": "-100.00"
+      }
+    ],
+    "subtotal": "-100.00",
+    "discount": null,
+    "tax": "-8.00",
+    "shipping": null,
+    "total": "-108.00"
+  },
+  "validation": {
+    "status": "pass",
+    "review_required": false,
+    "issues": []
+  }
+}

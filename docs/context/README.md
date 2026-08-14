@@ -1,6 +1,6 @@
 # DDE Context Documents
 
-**Status: Native core implemented.** These documents describe the current CLI core, completed private live-provider spot checks, and separately label Docker, HTTP API, Kubernetes, and representative live benchmarking as **Planned**. Code is authoritative when any statement becomes stale.
+**Status: Native core, synchronous HTTP adapter, and secure Docker image implemented.** These documents describe the current CLI/API/image and completed private live-provider spot checks, while minimal Kubernetes templates are implemented and representative live benchmarking remains **Planned**. Code is authoritative when any statement becomes stale.
 
 Each topic has one owner to avoid duplication:
 

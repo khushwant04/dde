@@ -15,9 +15,11 @@ from dde.models import ExtractedDocument, ResultEnvelope
 HEADER_FIELDS = (
     "document_type",
     "document_id",
+    "reference_document_id",
     "customer_name",
     "issue_date",
     "due_date",
+    "delivery_date",
     "currency",
     "subtotal",
     "discount",
@@ -43,6 +45,10 @@ def _rate(numerator: int, denominator: int) -> float:
     return round(numerator / denominator, 4) if denominator else 0.0
 
 
+def _f1(precision: float, recall: float) -> float:
+    return round(2 * precision * recall / (precision + recall), 4) if precision + recall else 0.0
+
+
 def evaluate_samples(root: Path) -> dict[str, Any]:
     ground_dir = root / "ground_truth"
     output_dir = root / "outputs"
@@ -54,12 +60,15 @@ def evaluate_samples(root: Path) -> dict[str, Any]:
     processed = schema_valid = header_match = header_total = 0
     decimal_match = decimal_total = hallucinations = 0
     true_positive = false_positive = false_negative = 0
-    issue_expected = issue_found = 0
+    issue_true_positive = issue_false_positive = issue_false_negative = 0
     failures: list[dict[str, str]] = []
     format_breakdown: dict[str, dict[str, int]] = defaultdict(
         lambda: {"fixtures": 0, "processed": 0, "schema_valid": 0}
     )
     layout_breakdown: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"fixtures": 0, "processed": 0, "schema_valid": 0}
+    )
+    document_type_breakdown: dict[str, dict[str, int]] = defaultdict(
         lambda: {"fixtures": 0, "processed": 0, "schema_valid": 0}
     )
 
@@ -75,21 +84,39 @@ def evaluate_samples(root: Path) -> dict[str, Any]:
         except (ValidationError, OSError) as exc:
             failures.append({"fixture": fixture_id, "error": f"invalid ground truth: {exc}"})
             continue
+        document_type = expected.document_type
+        expected_codes = set(metadata.get("expected_issue_codes", []))
+        document_type_breakdown[document_type]["fixtures"] += 1
+        manifest_document_type = metadata.get("document_type")
+        if manifest_document_type is not None and manifest_document_type != document_type:
+            failures.append(
+                {
+                    "fixture": fixture_id,
+                    "error": (
+                        "manifest document_type mismatch: "
+                        f"{manifest_document_type!r} != {document_type!r}"
+                    ),
+                }
+            )
         output_path = output_dir / f"{fixture_id}.json"
         if not output_path.is_file():
             failures.append({"fixture": fixture_id, "error": "missing output"})
+            issue_false_negative += len(expected_codes)
             continue
         processed += 1
         format_breakdown[media_group]["processed"] += 1
         layout_breakdown[layout_group]["processed"] += 1
+        document_type_breakdown[document_type]["processed"] += 1
         try:
             actual_result = ResultEnvelope.model_validate_json(output_path.read_text())
         except (ValidationError, OSError) as exc:
             failures.append({"fixture": fixture_id, "error": f"invalid output: {exc}"})
+            issue_false_negative += len(expected_codes)
             continue
         schema_valid += 1
         format_breakdown[media_group]["schema_valid"] += 1
         layout_breakdown[layout_group]["schema_valid"] += 1
+        document_type_breakdown[document_type]["schema_valid"] += 1
         actual = actual_result.document
 
         for field in HEADER_FIELDS:
@@ -126,14 +153,15 @@ def evaluate_samples(root: Path) -> dict[str, Any]:
         false_positive += sum(actual_lines.values()) - overlap
         false_negative += sum(expected_lines.values()) - overlap
 
-        expected_codes = set(fixture_meta.get(fixture_id, {}).get("expected_issue_codes", []))
         actual_codes = {issue.code.value for issue in actual_result.validation.issues}
-        issue_expected += len(expected_codes)
-        issue_found += len(expected_codes & actual_codes)
+        issue_true_positive += len(expected_codes & actual_codes)
+        issue_false_positive += len(actual_codes - expected_codes)
+        issue_false_negative += len(expected_codes - actual_codes)
 
     precision = _rate(true_positive, true_positive + false_positive)
     recall = _rate(true_positive, true_positive + false_negative)
-    f1 = round(2 * precision * recall / (precision + recall), 4) if precision + recall else 0.0
+    issue_precision = _rate(issue_true_positive, issue_true_positive + issue_false_positive)
+    issue_recall = _rate(issue_true_positive, issue_true_positive + issue_false_negative)
     return {
         "fixture_count": len(ground_paths),
         "processing": {"count": processed, "rate": _rate(processed, len(ground_paths))},
@@ -151,20 +179,27 @@ def evaluate_samples(root: Path) -> dict[str, Any]:
         "line_items": {
             "precision": precision,
             "recall": recall,
-            "f1": f1,
+            "f1": _f1(precision, recall),
             "true_positive": true_positive,
             "false_positive": false_positive,
             "false_negative": false_negative,
         },
         "validation_detection": {
-            "found": issue_found,
-            "expected": issue_expected,
-            "recall": _rate(issue_found, issue_expected),
+            "found": issue_true_positive,
+            "expected": issue_true_positive + issue_false_negative,
+            "predicted": issue_true_positive + issue_false_positive,
+            "precision": issue_precision,
+            "recall": issue_recall,
+            "f1": _f1(issue_precision, issue_recall),
+            "true_positive": issue_true_positive,
+            "false_positive": issue_false_positive,
+            "false_negative": issue_false_negative,
         },
         "hallucination_count": hallucinations,
         "breakdown": {
             "format": dict(sorted(format_breakdown.items())),
             "layout": dict(sorted(layout_breakdown.items())),
+            "document_type": dict(sorted(document_type_breakdown.items())),
         },
         "failures": failures,
         "note": "Committed outputs are fake-provider samples, not live model accuracy evidence.",

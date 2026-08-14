@@ -1,15 +1,18 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "source": {
     "file_name": "invoice_b.png",
     "media_type": "image/png",
     "byte_count": 33631,
     "page_count": 1,
-    "sha256": "df9a8c542ef3d4b5df64e44ab5fb9fc5d823dac4918606ab7aba1bc95556c591"
+    "sheet_count": null,
+    "sha256": "df9a8c542ef3d4b5df64e44ab5fb9fc5d823dac4918606ab7aba1bc95556c591",
+    "notices": []
   },
   "document": {
     "document_type": "invoice",
     "document_id": "NS-882",
+    "reference_document_id": null,
     "vendor": {
       "name": "Northstar Design",
       "tax_id": null,
@@ -18,6 +21,7 @@
     "customer_name": null,
     "issue_date": "2026-08-11",
     "due_date": null,
+    "delivery_date": null,
     "currency": "USD",
     "line_items": [
       {

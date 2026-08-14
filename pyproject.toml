@@ -11,12 +11,17 @@ classifiers = [
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "azure-identity==1.25.3",
+    "defusedxml==0.7.1",
+    "fastapi==0.141.1",
     "openai==3.0.0",
+    "openpyxl==3.1.5",
     "pillow==12.3.0",
     "pydantic==2.13.4",
     "pydantic-settings==2.15.0",
     "pymupdf==1.28.2",
+    "python-multipart==0.0.32",
     "typer==0.27.1",
+    "uvicorn==0.52.3",
 ]
 
 [project.scripts]
@@ -68,8 +73,12 @@ skip_covered = true
 [dependency-groups]
 dev = [
     "hatchling==1.32.0",
+    "httpx==0.28.1",
     "mypy==2.3.0",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
+    "pyyaml==6.0.3",
     "ruff==0.16.2",
+    "types-defusedxml==0.7.0.20260504",
+    "types-openpyxl==3.1.5.20260807",
 ]

@@ -9,6 +9,13 @@ from pathlib import Path
 
 from dde.config import Settings
 from dde.errors import InputError, InputLimitError, UnsupportedInputError
+from dde.formats import (
+    FormatKind,
+    format_for_extension,
+    sniff_binary_format,
+    supported_format_labels,
+)
+from dde.models import LoaderNotice
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,10 +24,11 @@ class LoadedDocument:
     media_type: str
     sha256: str
     byte_count: int
-    page_count: int
+    page_count: int | None
     text: str | None
     images: tuple[bytes, ...]
-    warnings: tuple[str, ...] = ()
+    sheet_count: int | None = None
+    notices: tuple[LoaderNotice, ...] = ()
 
     def image_data_urls(self) -> tuple[str, ...]:
         encoded: list[str] = []
@@ -55,27 +63,37 @@ def digest(data: bytes) -> str:
 
 def load_document(path: Path, settings: Settings) -> LoadedDocument:
     data = read_bounded(path, settings)
-    suffix = path.suffix.lower()
-    if data.startswith(b"%PDF-"):
-        if suffix != ".pdf":
-            raise UnsupportedInputError("PDF content requires a .pdf extension")
-        from dde.loaders.pdf import load_pdf
+    suffix = path.suffix.casefold()
+    declared_format = format_for_extension(suffix)
+    detected_format = sniff_binary_format(data)
+    if detected_format is not None and suffix not in detected_format.extensions:
+        expected = " or ".join(detected_format.extensions)
+        raise UnsupportedInputError(
+            f"{detected_format.label} content requires a {expected} extension"
+        )
+    if detected_format is not None:
+        if detected_format.kind == FormatKind.PDF:
+            from dde.loaders.pdf import load_pdf
 
-        return load_pdf(path, data, settings)
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-        if suffix != ".png":
-            raise UnsupportedInputError("PNG content requires a .png extension")
-        from dde.loaders.image import load_image
+            return load_pdf(path, data, settings)
+        if detected_format.kind in {FormatKind.PNG, FormatKind.JPEG}:
+            from dde.loaders.image import load_image
 
-        return load_image(path, data, settings)
-    if data.startswith(b"\xff\xd8\xff"):
-        if suffix not in {".jpg", ".jpeg"}:
-            raise UnsupportedInputError("JPEG content requires a .jpg or .jpeg extension")
-        from dde.loaders.image import load_image
+            return load_image(path, data, settings)
+        if detected_format.kind == FormatKind.XLSX:
+            from dde.loaders.xlsx import load_xlsx
 
-        return load_image(path, data, settings)
-    if suffix == ".txt":
+            return load_xlsx(path, data, settings)
+    if declared_format is not None and declared_format.signatures:
+        raise UnsupportedInputError(
+            f"{declared_format.label} extension does not match the file content"
+        )
+    if declared_format is not None and declared_format.kind == FormatKind.TEXT:
         from dde.loaders.text import load_text
 
         return load_text(path, data)
-    raise UnsupportedInputError("Unsupported content; expected PDF, PNG, JPEG, or UTF-8 TXT")
+    if declared_format is not None and declared_format.kind == FormatKind.CSV:
+        from dde.loaders.csv import load_csv
+
+        return load_csv(path, data, settings)
+    raise UnsupportedInputError(f"Unsupported content; expected {supported_format_labels()}")

@@ -1,15 +1,18 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "source": {
     "file_name": "invoice_mismatch.pdf",
     "media_type": "application/pdf",
     "byte_count": 959,
     "page_count": 1,
-    "sha256": "70a1b1bbd3a24dc509b65a75dc678601ba0505d29ee0ef93afd1ccafe4840522"
+    "sheet_count": null,
+    "sha256": "70a1b1bbd3a24dc509b65a75dc678601ba0505d29ee0ef93afd1ccafe4840522",
+    "notices": []
   },
   "document": {
     "document_type": "invoice",
     "document_id": "OC-404",
+    "reference_document_id": null,
     "vendor": {
       "name": "Orbital Components",
       "tax_id": null,
@@ -18,6 +21,7 @@
     "customer_name": "Demo Manufacturing",
     "issue_date": "2026-08-13",
     "due_date": null,
+    "delivery_date": null,
     "currency": "USD",
     "line_items": [
       {
