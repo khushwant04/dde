@@ -1,10 +1,10 @@
 # Product Requirements Document (PRD)
 
-**Status: Native core implemented.** The CLI, supported loaders, strict extraction envelope, deterministic validation, batch/revalidation/evaluation commands, synthetic fixtures, and offline tests are current. Docker and hosted infrastructure requirements below are **Planned**. Code remains authoritative.
+**Status: Native core, synchronous hosted API, and secure Docker image implemented.** The CLI, supported loaders, strict extraction envelope, deterministic validation, batch/revalidation/evaluation commands, synthetic fixtures, offline tests, bounded FastAPI adapter, and fixed-non-root runtime image are current. Minimal Kubernetes templates are implemented; cluster production readiness remains unverified. Code remains authoritative.
 
 ## Product statement
 
-The Document Data Extractor takes an invoice or receipt in PDF, image, or UTF-8 text form and returns schema-valid JSON containing normalized fields and line items, deterministic validation results, and an explicit human-review decision.
+The Document Data Extractor takes an invoice, receipt, purchase order, or credit note in PDF, image, or UTF-8 text form and returns schema-valid JSON containing normalized fields and line items, deterministic validation results, and an explicit human-review decision.
 
 ## Problem
 
@@ -19,7 +19,7 @@ Business documents vary in layout and input quality. OCR or a language model can
 ## Goals
 
 1. Demonstrate end-to-end extraction for PDF, image, and text inputs.
-2. Normalize different invoice and receipt layouts into one stable result envelope.
+2. Normalize supported financial-document layouts into one stable result envelope.
 3. Detect invalid dates and inconsistent money calculations deterministically.
 4. Return missing values as `null` and flag uncertain or invalid records for review.
 5. Make setup, execution, and evaluation reproducible from the root README.
@@ -27,28 +27,27 @@ Business documents vary in layout and input quality. OCR or a language model can
 ## MVP scope
 
 - Python CLI.
-- `.pdf`, `.png`, `.jpg`, `.jpeg`, and `.txt` inputs.
-- Invoice and receipt document types.
+- `.pdf`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.csv`, and `.xlsx` inputs; legacy `.xls` and `.ods` are excluded.
+- Invoice, receipt, purchase-order, and credit-note document types.
 - At least two visibly different layouts; target two invoice and two receipt layouts.
 - Multimodal structured extraction through one tested provider.
 - Strict schema validation and at most one schema-repair attempt.
 - Decimal/date business-rule validation.
 - Single-document, batch, validation-only, and evaluation commands.
 - Synthetic redistributable fixtures, ground truth, and committed example outputs.
-- **Planned:** Docker image for reproducible CLI packaging after the native CLI core.
+- Secure multi-stage Docker image for reproducible CLI/API packaging, with a fixed non-root user and offline hardened runtime checks.
 
 ## Post-core hosting scope
 
-- A minimal synchronous HTTP adapter around the same application service.
-- A stateless Docker runtime.
-- Kubernetes Deployment, Service, ConfigMap, and example Secret manifests.
-- Health/readiness endpoints and documented resource/security settings.
+- **Implemented:** a bounded minimal synchronous HTTP adapter around the same application service, including offline probes, multipart receive/file limits, concurrency rejection, response deadlines, sanitized errors, and request-scoped cleanup.
+- **Implemented:** a stateless multi-stage Docker runtime for CLI and hosted modes, locally verified as fixed-non-root with offline read-only checks.
+- **Implemented:** Kubernetes Deployment, Service, ConfigMap, and example Secret manifests; cluster production readiness remains outside the MVP.
 
 Kubernetes is not a prerequisite for the extractor MVP or the scored three-minute demo. It must not delay extraction, validation, tests, fixtures, or README reproducibility.
 
 ## Non-goals
 
-- Arbitrary document types, handwriting, and full credit-note workflows. Exact equal-and-opposite line reversals on otherwise supported invoices are in scope.
+- Arbitrary document types, handwriting, and full enterprise purchase-order or credit-note workflows. Credit support is limited to deterministic coherent sign profiles; mixed or ambiguous signs require review.
 - Fine-tuning, RAG, embeddings, or a vector database.
 - Open-ended multi-agent orchestration.
 - Automatic correction of source values.
@@ -60,11 +59,11 @@ Kubernetes is not a prerequisite for the extractor MVP or the scored three-minut
 
 | ID | Requirement | Priority |
 |---|---|---|
-| `FR-001` | Accept supported PDF, image, and UTF-8 text files. | Must |
+| `FR-001` | Accept supported PDF, image, UTF-8 text/CSV, and XLSX files. | Must |
 | `FR-002` | Reject unsupported, corrupt, encrypted, empty, or oversized input predictably. | Must |
-| `FR-003` | Extract document type, identifier, vendor, dates, currency, totals, and line items without fabricating missing values. | Must |
+| `FR-003` | Extract document type, identifiers/references, vendor, relevant dates, currency, totals, and line items without fabricating missing values. | Must |
 | `FR-004` | Produce one versioned, schema-valid JSON envelope across all layouts. | Must |
-| `FR-005` | Validate line amounts, subtotal, total, dates, currency, exact balanced reversals, and unsupported unmatched negative values using code. | Must |
+| `FR-005` | Validate line amounts, subtotal, total, dates, currency, exact balanced reversals, unsupported negatives, and coherent credit-note signs using code. | Must |
 | `FR-006` | Preserve extracted source values when a business rule fails and emit issue codes. | Must |
 | `FR-007` | Set validation status and `review_required` from deterministic issues. | Must |
 | `FR-008` | Process all supported files in a directory. | Must |
@@ -115,8 +114,11 @@ The brief contains resume-specific wording in the universal rubric. This project
 - Scanned PDFs and source images rely on model vision; no host OCR binary is installed.
 - Ambiguous locale dates remain `null`; only unambiguous dates normalize to strict ISO form.
 - The deterministic currency allowlist covers common challenge currencies, not every ISO 4217 code.
-- Full credit-note workflows and unmatched negative values remain unsupported; exact positive/negative line reversals are recognized as informational evidence.
+- Credit notes are supported only when non-zero monetary values form a coherent positive-magnitude or negative-signed profile; mixed/ambiguous signs require review, and incomplete totals are explicitly unverifiable.
+- The purchase-order schema is intentionally flat and does not model enterprise approvals, fulfillment events, or complex terms.
+- XLSX formulas are not executed; cached values can be missing or stale, hidden sheets are skipped with review evidence, and charts/comments/drawings/pivots/visual formatting are not canonicalized. Active content and external relationships are rejected; `.xls` and `.ods` remain unsupported.
 - The small synthetic fixture set demonstrates reproducibility and rule behavior, not general extraction accuracy.
+- The synchronous HTTP adapter has bounded in-process concurrency but no authentication, TLS termination, durable queue, or distributed rate limiting. A response timeout does not forcibly cancel the provider worker; temporary data is deleted when that worker actually finishes.
 - Live requests may incur cost and send document content to the configured provider.
 
 ## Product risks

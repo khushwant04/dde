@@ -1,0 +1,10 @@
+CREDIT NOTE CN-104
+References invoice INV-900
+Vendor: Beacon Services
+Credit To: Rooman Labs
+Date: 15 Aug 2026
+Currency: USD
+Service adjustment | 1 | USD 100.00 | USD 100.00
+Subtotal USD 100.00
+Tax USD 8.00
+CREDIT TOTAL USD 108.00

@@ -1,6 +1,6 @@
 # Architecture Requirements and Decisions (ARD)
 
-**Status: Native core implemented.** The component boundaries, processing flow, provider adapter, and deterministic validation describe current code. Docker, HTTP, and Kubernetes deployment views remain **Planned**. Implementation is authoritative.
+**Status: Native core, HTTP transport, and secure Docker image implemented.** The component boundaries, processing flow, provider adapter, deterministic validation, bounded synchronous FastAPI adapter, and fixed-non-root image describe current code. Minimal Kubernetes deployment templates are implemented; cluster production readiness remains unverified. Implementation is authoritative.
 
 ## Architecture drivers
 
@@ -9,7 +9,7 @@
 - Keep language-model behavior behind a testable boundary.
 - Avoid an agent framework because the workflow is bounded and deterministic outside model extraction.
 - Enforce schema and business rules outside the model.
-- Reuse one application service from CLI, tests, and a future hosted API.
+- Reuse one application service from CLI, tests, and the hosted API.
 - Remain stateless so Docker and Kubernetes packaging stay simple.
 
 ## System context
@@ -25,7 +25,7 @@
                       +----------------+
 ```
 
-One OpenAI Responses-compatible inference endpoint is the only required external runtime service. The default target is Azure AI Foundry `gpt-5.6-sol` version `2026-07-09`, which supports text/image input and the Responses API, so rendered PDF pages and source images can be sent directly to the model. No Document Intelligence service, database, object store, queue, vector store, or agent service is required for the planned MVP.
+One OpenAI Responses-compatible inference endpoint is the only required external runtime service. The default target is Azure AI Foundry `gpt-5.6-sol` version `2026-07-09`, which supports text/image input and the Responses API, so rendered PDF pages and source images can be sent directly to the model. No Document Intelligence service, database, object store, queue, vector store, or agent service is required for the implemented scope.
 
 ## Component architecture
 

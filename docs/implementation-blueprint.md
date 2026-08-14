@@ -1,6 +1,6 @@
 # DDE Implementation Blueprint
 
-**Status: Native core implemented.** Stages 0-6 and 9 are represented by the current CLI, guarded loaders, provider adapters, validators, fixtures, evaluator, tests, runnable documentation, and authorized private Azure spot checks. Private live artifacts are intentionally excluded from the repository and do not constitute a representative accuracy benchmark. Stages 7-8 (Docker, hosted API, and Kubernetes) remain **Planned** and are intentionally outside the current scope. This document owns delivery sequence and time allocation only; requirements and design live in the [context document set](context/README.md).
+**Status: Native core, synchronous HTTP adapter, and secure Docker image implemented.** Stages 0-7 and the API portion of stage 8 are represented by the current CLI/API/image, guarded loaders, provider adapters, validators, fixtures, evaluator, tests, runnable documentation, and authorized private Azure spot checks. Private live artifacts are intentionally excluded from the repository and do not constitute a representative accuracy benchmark. The minimal Kubernetes template portion of stage 8 is implemented; cluster production readiness remains unverified. This document owns delivery sequence and time allocation only; requirements and design live in the [context document set](context/README.md).
 
 ## Context references
 
@@ -46,7 +46,7 @@
 - Extract native PDF text and render bounded page images.
 - Test unsupported, empty, corrupt, and oversized inputs.
 
-**Exit:** every planned core format returns canonical loaded content or a typed error.
+**Exit:** every supported core format returns canonical loaded content or a typed error.
 
 ### 3. Structured extraction
 
@@ -85,21 +85,22 @@
 
 ### 7. Docker packaging
 
-- Add the locked runtime, `.dockerignore`, and non-root image.
-- Verify CLI help, offline validation, one intentional live run, and no embedded secrets.
+- **Implemented:** locked runtime, deny-by-default `.dockerignore`, multi-stage build, and fixed user `10001:10001`.
+- **Verified locally on linux/amd64:** CLI help, offline fake extraction/revalidation, runtime-only contents, no embedded provider configuration, hosted probes, and clean termination under network-none/read-only/capability-dropped controls.
 
-**Exit:** Docker packaging acceptance criteria pass without changing domain behavior.
+**Exit:** Docker packaging acceptance criteria pass without changing domain behavior. Vulnerability scanning, signing/SBOM publication, and multi-architecture evidence remain outside this result.
 
 ### 8. Hosted API and Kubernetes
 
 This is post-core work.
 
-- Add the thin synchronous HTTP adapter and health endpoints.
-- Run the same image in hosted mode.
-- Add minimal ConfigMap, example Secret, Deployment, Service, and deployment notes.
-- Validate manifests, then run a cluster smoke test only if a cluster is available.
+- **Implemented:** thin synchronous HTTP adapter, health/readiness endpoints, bounded multipart reception, concurrency/deadline handling, and temporary cleanup.
+- **Implemented locally:** run the same fixed-non-root image in hosted mode and probe it without external network access.
+- **Implemented:** minimal ConfigMap, example Secret, Deployment, Service, and deployment notes.
+- **Verified in an isolated temporary cluster:** API-server validation, pinned-image rollout, ClusterIP probes, runtime security, sanitized unsupported-upload handling, and idle SIGTERM recovery.
+- **Unverified:** configured-provider extraction, active-request shutdown, high availability, and production readiness.
 
-**Exit:** hosting gates pass as defined in deployment requirements. If time expires, retain honest planned documentation rather than unverified manifests.
+**Exit:** API behavior is independently gated; remaining container and cluster hosting gates pass only when verified as defined in deployment requirements.
 
 ### 9. Reviewer rehearsal and freeze
 
@@ -125,7 +126,7 @@ This is post-core work.
 | 21-23 | README and clean rehearsal | Reviewer flow passes from scratch. |
 | 23-24 | Submission buffer | Final working revision is pushed. |
 
-Kubernetes is deliberately limited to at most one hour during the challenge unless the full core is already complete. It may be finished after the challenge only if late commits are allowed; otherwise planned manifests must not be presented as implemented.
+Kubernetes is deliberately limited to at most one hour during the challenge unless the full core is already complete. It may be finished after the challenge only if late commits are allowed; otherwise unverified manifests must not be presented as implemented.
 
 ## Risk cutoffs
 

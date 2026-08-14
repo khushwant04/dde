@@ -28,5 +28,7 @@
   "discount": "20.00",
   "tax": "29.00",
   "shipping": null,
-  "total": "609.00"
+  "total": "609.00",
+  "reference_document_id": null,
+  "delivery_date": null
 }

@@ -1,6 +1,50 @@
 {
+  "fixture_count": 11,
+  "processing": {
+    "count": 11,
+    "rate": 1.0
+  },
+  "schema_validity": {
+    "count": 11,
+    "rate": 1.0
+  },
+  "header_exact_match": {
+    "matched": 176,
+    "compared": 176,
+    "rate": 1.0
+  },
+  "decimal_accuracy": {
+    "matched": 55,
+    "compared": 55,
+    "rate": 1.0
+  },
+  "line_items": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "true_positive": 15,
+    "false_positive": 0,
+    "false_negative": 0
+  },
+  "validation_detection": {
+    "found": 4,
+    "expected": 4,
+    "predicted": 4,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "true_positive": 4,
+    "false_positive": 0,
+    "false_negative": 0
+  },
+  "hallucination_count": 0,
   "breakdown": {
     "format": {
+      "csv": {
+        "fixtures": 1,
+        "processed": 1,
+        "schema_valid": 1
+      },
       "image": {
         "fixtures": 2,
         "processed": 2,
@@ -12,6 +56,11 @@
         "schema_valid": 4
       },
       "text": {
+        "fixtures": 3,
+        "processed": 3,
+        "schema_valid": 3
+      },
+      "xlsx": {
         "fixtures": 1,
         "processed": 1,
         "schema_valid": 1
@@ -23,12 +72,32 @@
         "processed": 1,
         "schema_valid": 1
       },
+      "credit-note-compact": {
+        "fixtures": 1,
+        "processed": 1,
+        "schema_valid": 1
+      },
+      "credit-note-records": {
+        "fixtures": 1,
+        "processed": 1,
+        "schema_valid": 1
+      },
       "modern-two-column": {
         "fixtures": 1,
         "processed": 1,
         "schema_valid": 1
       },
+      "multi-sheet-purchase-order": {
+        "fixtures": 1,
+        "processed": 1,
+        "schema_valid": 1
+      },
       "narrow-thermal": {
+        "fixtures": 1,
+        "processed": 1,
+        "schema_valid": 1
+      },
+      "purchase-order-table": {
         "fixtures": 1,
         "processed": 1,
         "schema_valid": 1
@@ -53,41 +122,30 @@
         "processed": 1,
         "schema_valid": 1
       }
+    },
+    "document_type": {
+      "credit_note": {
+        "fixtures": 2,
+        "processed": 2,
+        "schema_valid": 2
+      },
+      "invoice": {
+        "fixtures": 5,
+        "processed": 5,
+        "schema_valid": 5
+      },
+      "purchase_order": {
+        "fixtures": 2,
+        "processed": 2,
+        "schema_valid": 2
+      },
+      "receipt": {
+        "fixtures": 2,
+        "processed": 2,
+        "schema_valid": 2
+      }
     }
   },
-  "decimal_accuracy": {
-    "compared": 35,
-    "matched": 35,
-    "rate": 1.0
-  },
   "failures": [],
-  "fixture_count": 7,
-  "hallucination_count": 0,
-  "header_exact_match": {
-    "compared": 98,
-    "matched": 98,
-    "rate": 1.0
-  },
-  "line_items": {
-    "f1": 1.0,
-    "false_negative": 0,
-    "false_positive": 0,
-    "precision": 1.0,
-    "recall": 1.0,
-    "true_positive": 11
-  },
-  "note": "Committed outputs are fake-provider samples, not live model accuracy evidence.",
-  "processing": {
-    "count": 7,
-    "rate": 1.0
-  },
-  "schema_validity": {
-    "count": 7,
-    "rate": 1.0
-  },
-  "validation_detection": {
-    "expected": 3,
-    "found": 3,
-    "recall": 1.0
-  }
+  "note": "Committed outputs are fake-provider samples, not live model accuracy evidence."
 }

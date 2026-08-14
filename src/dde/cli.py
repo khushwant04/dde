@@ -12,7 +12,8 @@ from pydantic import ValidationError
 from dde.config import Settings
 from dde.errors import DDEError, ExitCode, InputError, SchemaOutputError
 from dde.evaluator import evaluate_samples
-from dde.models import ResultEnvelope
+from dde.formats import is_supported_path
+from dde.models import parse_result_envelope_json
 from dde.pipeline import ExtractionPipeline
 from dde.providers import FakeProvider, OpenAIResponsesProvider
 from dde.providers.base import ExtractionProvider
@@ -20,7 +21,10 @@ from dde.validation import validate_document
 
 app = typer.Typer(
     name="dde",
-    help="Extract and deterministically validate invoices and receipts.",
+    help=(
+        "Extract and deterministically validate invoices, receipts, purchase orders, and "
+        "credit notes."
+    ),
     no_args_is_help=True,
     add_completion=False,
 )
@@ -129,9 +133,7 @@ def batch(
     except DDEError as exc:
         _fail(exc, exc.exit_code)
     paths = sorted(
-        path
-        for path in directory.iterdir()
-        if path.is_file() and path.suffix.lower() in {".pdf", ".png", ".jpg", ".jpeg", ".txt"}
+        path for path in directory.iterdir() if path.is_file() and is_supported_path(path)
     )
     if not paths:
         _fail(InputError("Directory contains no supported files"), ExitCode.INPUT_ERROR)
@@ -169,14 +171,20 @@ def validate_result(
     try:
         if not result_json.is_file():
             raise InputError(f"Result file does not exist: {result_json}")
-        result = ResultEnvelope.model_validate_json(result_json.read_text(encoding="utf-8"))
-        result = result.model_copy(update={"validation": validate_document(result.document)})
+        result = parse_result_envelope_json(result_json.read_text(encoding="utf-8"))
+        result = result.model_copy(
+            update={
+                "validation": validate_document(
+                    result.document, loader_notices=result.source.notices
+                )
+            }
+        )
         _emit_json(result.model_dump_json(indent=2), output)
         if strict and result.validation.review_required:
             raise typer.Exit(ExitCode.REVIEW_REQUIRED)
     except InputError as exc:
         _fail(exc, exc.exit_code)
-    except (ValidationError, UnicodeDecodeError, OSError):
+    except (ValueError, UnicodeDecodeError, OSError):
         _fail(SchemaOutputError("Result JSON does not match schema"), ExitCode.SCHEMA_ERROR)
 
 

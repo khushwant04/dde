@@ -1,15 +1,18 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "source": {
     "file_name": "invoice_a.pdf",
     "media_type": "application/pdf",
     "byte_count": 1042,
     "page_count": 1,
-    "sha256": "59726ea38039c7c94b10d641a77a998d5002c7062aa84091836ce35e3f8fa970"
+    "sheet_count": null,
+    "sha256": "59726ea38039c7c94b10d641a77a998d5002c7062aa84091836ce35e3f8fa970",
+    "notices": []
   },
   "document": {
     "document_type": "invoice",
     "document_id": "INV-20491",
+    "reference_document_id": null,
     "vendor": {
       "name": "ACME Technologies Pvt Ltd",
       "tax_id": "GSTIN29ABCDE1234F1Z5",
@@ -18,6 +21,7 @@
     "customer_name": "Rooman Labs",
     "issue_date": "2026-08-12",
     "due_date": "2026-08-26",
+    "delivery_date": null,
     "currency": "INR",
     "line_items": [
       {

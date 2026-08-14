@@ -1,0 +1,28 @@
+{
+  "document_type": "purchase_order",
+  "document_id": "PO-7102",
+  "reference_document_id": null,
+  "vendor": {
+    "name": "Meridian Components",
+    "tax_id": null,
+    "address": "Toronto, Canada"
+  },
+  "customer_name": "Rooman Manufacturing",
+  "issue_date": "2026-08-17",
+  "due_date": null,
+  "delivery_date": "2026-08-31",
+  "currency": "CAD",
+  "line_items": [
+    {
+      "description": "Optical Sensor",
+      "quantity": "4",
+      "unit_price": "75.00",
+      "amount": "300.00"
+    }
+  ],
+  "subtotal": "300.00",
+  "discount": null,
+  "tax": "39.00",
+  "shipping": null,
+  "total": "339.00"
+}

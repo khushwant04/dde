@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "source": {
+    "file_name": "purchase_order_a.txt",
+    "media_type": "text/plain; charset=utf-8",
+    "byte_count": 272,
+    "page_count": 1,
+    "sheet_count": null,
+    "sha256": "4844f8151f80e6fa7ee7e2a1b59c78aad10d3172c5b38f33b98b0d3edb0997c1",
+    "notices": []
+  },
+  "document": {
+    "document_type": "purchase_order",
+    "document_id": "PO-6021",
+    "reference_document_id": null,
+    "vendor": {
+      "name": "Atlas Industrial Supply",
+      "tax_id": null,
+      "address": "Denver, CO"
+    },
+    "customer_name": "Rooman Manufacturing",
+    "issue_date": "2026-08-14",
+    "due_date": null,
+    "delivery_date": "2026-08-28",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Control Module",
+        "quantity": "3",
+        "unit_price": "40.00",
+        "amount": "120.00"
+      }
+    ],
+    "subtotal": "120.00",
+    "discount": null,
+    "tax": null,
+    "shipping": "15.00",
+    "total": "135.00"
+  },
+  "validation": {
+    "status": "pass",
+    "review_required": false,
+    "issues": []
+  }
+}

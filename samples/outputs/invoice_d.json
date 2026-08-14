@@ -1,15 +1,25 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "source": {
     "file_name": "invoice_d.pdf",
     "media_type": "application/pdf",
     "byte_count": 2973507,
     "page_count": 1,
-    "sha256": "aea865e6d0947e7923a92aafa7e95a0fcdc34871709f7536bc4675fb86cab4e0"
+    "sheet_count": null,
+    "sha256": "aea865e6d0947e7923a92aafa7e95a0fcdc34871709f7536bc4675fb86cab4e0",
+    "notices": [
+      {
+        "code": "NO_NATIVE_TEXT",
+        "severity": "info",
+        "message": "No native PDF text found; extraction uses rendered pages",
+        "field": null
+      }
+    ]
   },
   "document": {
     "document_type": "invoice",
     "document_id": "EP-140",
+    "reference_document_id": null,
     "vendor": {
       "name": "Europa Parts",
       "tax_id": "DE123456789",
@@ -18,6 +28,7 @@
     "customer_name": "Example Robotics",
     "issue_date": "2026-08-09",
     "due_date": "2026-08-08",
+    "delivery_date": null,
     "currency": "EUR",
     "line_items": [
       {
@@ -44,6 +55,14 @@
         "field": "due_date",
         "expected": "2026-08-09",
         "actual": "2026-08-08"
+      },
+      {
+        "code": "NO_NATIVE_TEXT",
+        "severity": "info",
+        "message": "No native PDF text found; extraction uses rendered pages",
+        "field": null,
+        "expected": null,
+        "actual": null
       }
     ]
   }

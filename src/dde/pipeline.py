@@ -25,10 +25,12 @@ class ExtractionPipeline:
             media_type=loaded.media_type,
             byte_count=loaded.byte_count,
             page_count=loaded.page_count,
+            sheet_count=loaded.sheet_count,
             sha256=loaded.sha256,
+            notices=list(loaded.notices),
         )
         return ResultEnvelope(
             source=source,
             document=extracted,
-            validation=validate_document(extracted),
+            validation=validate_document(extracted, loader_notices=loaded.notices),
         )

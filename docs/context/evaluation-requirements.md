@@ -1,6 +1,6 @@
 # Evaluation Requirements
 
-**Status: Offline evaluation implemented.** Eight synthetic fixtures (seven valid and one corrupt), separate ground truth/fake responses/result envelopes, deterministic metrics, and offline tests are included. Authorized private Azure spot checks have exercised three real invoices; their sources, outputs, and audits remain outside the repository. A representative live benchmark remains **Planned/opt-in**, and no general live-model accuracy result is claimed.
+**Status: Offline evaluation implemented.** Twelve synthetic fixtures (eleven valid and one corrupt), separate ground truth/fake responses/result envelopes, deterministic metrics, and offline tests are included. Authorized private Azure spot checks have exercised three real invoices; their sources, outputs, and audits remain outside the repository. A representative live benchmark remains **Planned/opt-in**, and no general live-model accuracy result is claimed.
 
 ## Evaluation goals
 
@@ -24,6 +24,10 @@ Create at least eight redistributable synthetic fixtures:
 | `receipt_a` | JPEG | narrow thermal | Receipt fields and short item rows. |
 | `receipt_b` | PDF | wide retail | Second receipt layout. |
 | `invoice_mismatch` | PDF | table | Printed total is incorrect and must remain unchanged while being flagged. |
+| `purchase_order_a` | TXT | purchase-order table | Delivery date and flat purchase-order fields. |
+| `purchase_order_b` | XLSX | multi-sheet purchase order | Guarded workbook path and second visible terms sheet. |
+| `credit_note_a` | TXT | compact credit note | Referenced invoice and coherent positive-magnitude credit profile. |
+| `credit_note_b` | CSV | record rows | Referenced invoice and coherent negative-signed credit profile. |
 | `bad_input` | corrupt or unsupported file | n/a | Stable rejection and error code. |
 
 Across the valid fixtures include:
@@ -51,7 +55,7 @@ samples/
 `-- evaluation-summary.json
 ```
 
-Every valid document has one ground-truth JSON file and one repository example envelope produced by `FakeProvider`. These prove deterministic integration only. Live evaluation must use separately identified private outputs, never overwrite ground truth, and never place real source documents in `samples/` or package artifacts.
+Every valid document has one ground-truth JSON file and one repository example envelope produced by `FakeProvider`. The offline generator rewrites the fixture-set manifest and evaluator summary from those artifacts, and tests require the committed summary to equal a fresh evaluator run. These prove deterministic integration only. Live evaluation must use separately identified private outputs, never overwrite ground truth, and never place real source documents in `samples/` or package artifacts.
 
 ## Metrics
 
@@ -59,12 +63,12 @@ The evaluator reports counts and rates, not only a single aggregate score:
 
 1. **Processing success:** supported documents yielding a result envelope.
 2. **Schema validity:** outputs accepted by the strict result schema.
-3. **Header-field exact match:** normalized document type, ID, vendor, date, currency, subtotal, tax, discount, shipping, and total.
+3. **Header-field exact match:** normalized document type, IDs/references, vendor, dates (including delivery), currency, subtotal, tax, discount, shipping, and total.
 4. **Decimal accuracy:** exact decimal comparison after normalization.
 5. **Line-item precision/recall/F1:** compare normalized tuples of description, quantity, unit price, and amount while preserving duplicate rows.
-6. **Validation detection:** expected issue codes found for deliberate failure fixtures.
+6. **Validation issue precision/recall/F1:** compare the set of expected versus emitted issue codes per fixture, including trusted loader notices; report true positives, false positives, and false negatives. This is code-level detection evidence, not instance-level localization accuracy.
 7. **Hallucination count:** non-null values where ground truth is null.
-8. **Format/layout breakdown:** results grouped by PDF/image/text and layout family.
+8. **Format/layout/document-type breakdown:** processing and schema-validity results grouped by PDF/image/text/CSV/XLSX, layout family, and invoice/receipt/purchase-order/credit-note type.
 
 Any fuzzy description comparison must publish its normalization and threshold. Do not let fuzzy matching hide wrong quantities or amounts.
 

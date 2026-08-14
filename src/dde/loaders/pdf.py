@@ -9,6 +9,7 @@ import pymupdf
 from dde.config import Settings
 from dde.errors import CorruptInputError, EncryptedPDFError, InputError, InputLimitError
 from dde.loaders.base import LoadedDocument, digest, safe_filename
+from dde.models import LoaderNotice, LoaderNoticeCode, Severity
 
 
 def load_pdf(path: Path, data: bytes, settings: Settings) -> LoadedDocument:
@@ -49,7 +50,18 @@ def load_pdf(path: Path, data: bytes, settings: Settings) -> LoadedDocument:
     finally:
         document.close()
     native_text = "\n\f\n".join(texts).strip() or None
-    warnings = () if native_text else ("No native PDF text found; extraction uses rendered pages",)
+    notices = (
+        ()
+        if native_text
+        else (
+            LoaderNotice(
+                code=LoaderNoticeCode.NO_NATIVE_TEXT,
+                severity=Severity.INFO,
+                message="No native PDF text found; extraction uses rendered pages",
+                field=None,
+            ),
+        )
+    )
     return LoadedDocument(
         file_name=safe_filename(path),
         media_type="application/pdf",
@@ -58,5 +70,5 @@ def load_pdf(path: Path, data: bytes, settings: Settings) -> LoadedDocument:
         page_count=page_count,
         text=native_text,
         images=tuple(images),
-        warnings=warnings,
+        notices=notices,
     )

@@ -16,3 +16,6 @@ build/
 # Real documents and live evaluation artifacts must never be committed.
 private-documents/
 private-evaluation/
+
+# Locally materialized Kubernetes credentials are never committed.
+deploy/k8s/secret.yaml

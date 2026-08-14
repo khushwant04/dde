@@ -16,6 +16,7 @@ from dde.errors import (
     UnsupportedInputError,
 )
 from dde.loaders import load_document
+from dde.models import LoaderNoticeCode, Severity
 
 
 def settings(**updates: object) -> Settings:
@@ -48,6 +49,8 @@ def test_text_loader_and_hash(tmp_path: Path) -> None:
     assert loaded.text == "hello £"
     assert len(loaded.sha256) == 64
     assert loaded.page_count == 1
+    assert loaded.sheet_count is None
+    assert loaded.notices == ()
 
 
 @pytest.mark.parametrize("data", [b"\xff", b"hello\x00world", b"  \n"])
@@ -94,6 +97,8 @@ def test_images_decode_and_normalize(
     assert loaded.media_type == media
     assert loaded.images[0].startswith(b"\x89PNG")
     assert loaded.image_data_urls()[0].startswith("data:image/png;base64,")
+    assert loaded.sheet_count is None
+    assert loaded.notices == ()
 
 
 def test_corrupt_image_and_pixel_limit(tmp_path: Path) -> None:
@@ -113,6 +118,7 @@ def test_pdf_extracts_text_and_renders_ordered_png(tmp_path: Path) -> None:
     loaded = load_document(path, settings(render_dpi=72))
     assert loaded.text is not None and "Visible invoice" in loaded.text
     assert loaded.page_count == 1
+    assert loaded.sheet_count is None
     assert loaded.images[0].startswith(b"\x89PNG")
 
 
@@ -126,7 +132,9 @@ def test_visual_only_pdf_warning(tmp_path: Path) -> None:
     document.close()
     loaded = load_document(path, settings(render_dpi=72))
     assert loaded.text is None
-    assert loaded.warnings
+    assert len(loaded.notices) == 1
+    assert loaded.notices[0].code == LoaderNoticeCode.NO_NATIVE_TEXT
+    assert loaded.notices[0].severity == Severity.INFO
 
 
 def test_pdf_page_and_render_pixel_limits(tmp_path: Path) -> None:

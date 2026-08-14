@@ -1,0 +1,12 @@
+section,field,value,description,quantity,unit_price,amount
+meta,document_type,credit note,,,,
+meta,document_id,CN-205,,,,
+meta,reference_document_id,INV-901,,,,
+meta,vendor,Beacon Services,,,,
+meta,customer,Rooman Labs,,,,
+meta,issue_date,16 Aug 2026,,,,
+meta,currency,USD,,,,
+line,,,Service adjustment,1,-100.00,-100.00
+total,subtotal,-100.00,,,,
+total,tax,-8.00,,,,
+total,total,-108.00,,,,
