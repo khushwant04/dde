@@ -1,6 +1,6 @@
 [project]
 name = "document-data-extractor"
-version = "0.1.0"
+version = "0.2.0"
 description = "CLI-first document data extractor with strict structured output and deterministic validation"
 readme = "README.md"
 license = "MIT"

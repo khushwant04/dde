@@ -5,7 +5,7 @@
 A Python 3.12 document-extraction application that turns PDF, PNG, JPEG, UTF-8 text, CSV, or XLSX invoices, receipts, purchase orders, and credit notes into strict JSON plus deterministic validation results.
 
 - **Rooman 24-Hour AI Agent Challenge:** Data & Documents — **Document Data Extractor (Advanced)**
-- **Release:** [`v0.1.0`](https://github.com/khushwant04/dde/releases/tag/v0.1.0)
+- **Release:** [`v0.2.0`](https://github.com/khushwant04/dde/releases/tag/v0.2.0)
 - **Model target:** Azure AI Foundry `gpt-5.6-sol` through the OpenAI Responses API
 
 ## Project assessment

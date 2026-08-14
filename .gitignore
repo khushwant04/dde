@@ -12,6 +12,9 @@ build/
 *.egg-info/
 .DS_Store
 
+# Local agent/editor workspace must never enter commits or release archives.
+.kiro/
+
 
 # Real documents and live evaluation artifacts must never be committed.
 private-documents/
