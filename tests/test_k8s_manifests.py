@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 K8S = ROOT / "deploy" / "k8s"
 PUBLISHED_IMAGE = (
     "docker.io/khushwant04/dde@sha256:"
-    "0aff95c2f273cadbdf7b31f7a5fd2e57eab318524a306ba1708b44338eeb70d7"
+    "d3a1da7971ae8b6e977b272cf8f92c0b04947418a894c84b5d5854e3feae6e98"
 )
 EXPECTED_CONFIG = {
     "OPENAI_BASE_URL",
@@ -94,7 +94,7 @@ def test_deployment_has_published_immutable_image_and_bounded_rollout() -> None:
     assert image == PUBLISHED_IMAGE
     assert re.fullmatch(r"[^\s:@]+(?:/[^\s:@]+)+@sha256:[0-9a-f]{64}", image)
     assert ":latest" not in image
-    assert "Published task19 image" in manifest["metadata"]["annotations"]["dde.dev/image-note"]
+    assert "Published v0.2.0 image" in manifest["metadata"]["annotations"]["dde.dev/image-note"]
 
 
 def test_deployment_uses_fixed_non_root_read_only_security_boundary() -> None:

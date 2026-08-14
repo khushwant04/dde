@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/component: api
     app.kubernetes.io/part-of: document-data-extractor
   annotations:
-    dde.dev/image-note: "Published task19 image; immutable Docker Hub index digest"
+    dde.dev/image-note: "Published v0.2.0 image; immutable Docker Hub index digest"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -42,8 +42,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: dde
-          # Published linux/amd64 task19 image with provenance attestation.
-          image: docker.io/khushwant04/dde@sha256:0aff95c2f273cadbdf7b31f7a5fd2e57eab318524a306ba1708b44338eeb70d7
+          # Published linux/amd64 v0.2.0 image with provenance attestation.
+          image: docker.io/khushwant04/dde@sha256:d3a1da7971ae8b6e977b272cf8f92c0b04947418a894c84b5d5854e3feae6e98
           imagePullPolicy: IfNotPresent
           command: ["uvicorn"]
           args:
