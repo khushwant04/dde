@@ -43,7 +43,7 @@ spec:
       containers:
         - name: dde
           # Published linux/amd64 task19 image with provenance attestation.
-          image: docker.io/khushwant04/dde@sha256:1c26f81928a043496e3a3e8de16acbb4a0733fc652e2893e60a66801e1bda58c
+          image: docker.io/khushwant04/dde@sha256:0aff95c2f273cadbdf7b31f7a5fd2e57eab318524a306ba1708b44338eeb70d7
           imagePullPolicy: IfNotPresent
           command: ["uvicorn"]
           args:

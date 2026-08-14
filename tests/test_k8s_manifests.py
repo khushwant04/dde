@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 K8S = ROOT / "deploy" / "k8s"
 PUBLISHED_IMAGE = (
     "docker.io/khushwant04/dde@sha256:"
-    "1c26f81928a043496e3a3e8de16acbb4a0733fc652e2893e60a66801e1bda58c"
+    "0aff95c2f273cadbdf7b31f7a5fd2e57eab318524a306ba1708b44338eeb70d7"
 )
 EXPECTED_CONFIG = {
     "OPENAI_BASE_URL",

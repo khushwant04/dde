@@ -113,7 +113,7 @@ A `504` response is a client deadline, not proof that a Python thread or remote 
 
 ## Kubernetes manifests
 
-The committed minimal set is a deployment template, not evidence of a running environment. `deployment.yaml` pins the published `docker.io/khushwant04/dde:task19` linux/amd64 image by immutable OCI index digest `sha256:1c26f81928a043496e3a3e8de16acbb4a0733fc652e2893e60a66801e1bda58c`. The image was built from the current dirty Task 19 worktree with revision label `df956f42d1b10aeaa9e0e0ce9499f01dcb4ee518-dirty`; it is not represented as a clean-commit or signed release artifact. The template uses API-key authentication only to make the Secret boundary explicit; Azure-hosted environments should instead configure Workload Identity and remove the `OPENAI_API_KEY` reference after testing that identity path.
+The committed minimal set is a deployment template, not evidence of a running environment. `deployment.yaml` pins the published `docker.io/khushwant04/dde:task19` linux/amd64 image by immutable OCI index digest `sha256:0aff95c2f273cadbdf7b31f7a5fd2e57eab318524a306ba1708b44338eeb70d7`. The image was built from clean implementation commit `0631fe6d327487d3bbe53595a78a5874410ef894` with the matching OCI revision label and a BuildKit provenance attestation; it is not represented as a vulnerability-scanned, signed, or versioned release artifact. The template uses API-key authentication only to make the Secret boundary explicit; Azure-hosted environments should instead configure Workload Identity and remove the `OPENAI_API_KEY` reference after testing that identity path.
 
 ### Deployment
 
@@ -202,7 +202,7 @@ kubectl apply --dry-run=client -f deploy/k8s/service.yaml
 
 These static checks validate parseable Kubernetes objects and repository security policy; they do not contact a cluster, pull the image, start a pod, or test provider connectivity.
 
-The isolated `dde-task19-20260814-0628` smoke additionally used k3d v5.9.0 with k3s v1.35.5. All four objects passed API-server dry-run and applied in a dedicated namespace; the deployment pulled the pinned OCI index digest and became ready, `/healthz` and `/readyz` returned through the ClusterIP Service, UID/GID and read-only-root plus writable-`/tmp` behavior matched the manifest, no Ingress/HPA/public Service existed, and an idle SIGTERM exited zero before Kubernetes restored readiness. The smoke intentionally used unusable provider placeholders, so it proved sanitized `415` upload rejection but not successful extraction or provider connectivity. The temporary cluster was deleted after evidence collection, and the pre-existing global context remained `aks-prod-global-01`.
+The final clean-digest isolated smoke used k3d v5.9.0 with k3s v1.35.5. All four objects passed API-server dry-run and applied in a dedicated namespace; the deployment pulled the pinned OCI index digest and became ready, `/healthz` and `/readyz` returned through the ClusterIP Service, UID/GID and read-only-root plus writable-`/tmp` behavior matched the manifest, no Ingress/HPA/public Service existed, and an idle SIGTERM exited zero before Kubernetes restored readiness. The smoke intentionally used unusable provider placeholders, so it proved sanitized `415` upload rejection but not successful extraction or provider connectivity. The temporary cluster was deleted after evidence collection, and the pre-existing global context remained `aks-prod-global-01`.
 
 Configured-provider completion checks:
 
