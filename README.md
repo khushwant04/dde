@@ -119,6 +119,21 @@ curl --fail -F 'file=@samples/documents/invoice_a.pdf' \
 
 Health and readiness never call the provider. Multipart request bytes, document bytes, concurrent workers, and client wait time are separately bounded. Excess concurrency returns `429`; response timeout returns `504`, but cannot forcibly cancel a running provider call, so its slot and temporary workspace remain occupied until worker cleanup. The adapter is stateless and tested offline, but has no authentication, TLS termination, or distributed rate limiting and must not be exposed directly to the internet.
 
+## Kubernetes
+
+Minimal manifests live in [`deploy/k8s/`](deploy/k8s): a ConfigMap, an example Secret, a single-replica Deployment pinned to the published `docker.io/khushwant04/dde` v0.2.0 image digest (non-root UID 10001, read-only root filesystem, dropped capabilities, startup/readiness/liveness probes, resource requests and limits), and a ClusterIP Service.
+
+```bash
+# Set OPENAI_BASE_URL and DDE_MODEL in configmap.yaml first.
+cp deploy/k8s/secret.example.yaml deploy/k8s/secret.yaml   # git-ignored; replace REPLACE_ME
+kubectl apply -f deploy/k8s/configmap.yaml -f deploy/k8s/secret.yaml \
+  -f deploy/k8s/deployment.yaml -f deploy/k8s/service.yaml
+kubectl rollout status deployment/dde
+kubectl port-forward service/dde 8080:80
+```
+
+The Deployment always requires the `dde-provider` Secret, even with `DDE_AUTH_MODE=azure_identity`. No Ingress, NetworkPolicy, or autoscaler is supplied; see [deployment requirements](docs/context/deployment-requirements.md#kubernetes-verification) for the verification steps that were run.
+
 ## Approach and evidence
 
 - One primary structured extraction call is made; schema failure permits at most one schema-only repair call, so the happy path uses one call and the maximum is two.
@@ -148,7 +163,7 @@ The table maps the supplied universal rubric to the selected Document Data Extra
 - Direct SDK integration is smaller and more testable than an agent framework for a fixed workflow with two calls maximum.
 - Model vision avoids a host OCR binary but depends on document/image quality.
 - Strict validation favors reliable review signals over automatic correction.
-- Supported document types in `v0.1.0` are invoices and receipts; purchase orders, full credit-note workflows, handwriting, and password-protected PDFs were outside that release.
+- Supported document types are invoices, receipts, purchase orders, and credit notes (`v0.1.0` covered only invoices and receipts). Handwriting, arbitrary document types, and encrypted PDFs are not supported; encrypted PDFs are rejected as input errors.
 - Current credit-note validation supports coherent positive-magnitude or negative-signed monetary profiles; mixed/ambiguous signs require review, and no printed value is corrected.
 - The purchase-order schema is intentionally flat and omits enterprise approval, fulfillment, and complex terms workflows.
 - XLSX formulas are never executed; formula text and available cached values are labeled separately, missing caches and skipped hidden sheets require review, and cached values may be stale.
@@ -158,6 +173,23 @@ The table maps the supplied universal rubric to the selected Document Data Extra
 - Minimal Kubernetes templates are implemented; cluster production readiness, databases, UI, and agent frameworks remain deferred.
 
 Full scope and known failures: [PRD](docs/context/prd.md) and [technical requirements](docs/context/technical-requirements.md).
+
+## Repository layout
+
+```text
+src/dde/
+  cli.py, __main__.py   Typer CLI: doctor, extract, batch, validate, evaluate
+  api.py                FastAPI adapter (/healthz, /readyz, /v1/extractions)
+  loaders/              PDF, image, text, CSV, and XLSX loaders with input limits
+  providers/            OpenAI Responses provider and offline fake provider
+  validation/rules.py   Deterministic Decimal/date/currency checks
+  models.py, config.py  Pydantic schemas and environment settings
+samples/                Synthetic documents, fake responses, ground truth, outputs
+scripts/                Fixture generator
+deploy/k8s/             Kubernetes manifests
+tests/                  Offline pytest suite (live tests are marked `live`)
+docs/                   PRD, architecture, technical, evaluation, deployment docs
+```
 
 ## Verification and documentation
 
